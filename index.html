@@ -1,1 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!--meta for the browser to allow for mobile first design-->
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <title>RootRecords</title>
+        <style>
+            html,
+            body,
+            #viewDiv {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+                width: 100%;
+            }
+            h1 {
+                background-color: rgb(255, 255, 255);
+                font-family: 'Times New Roman', Times, serif;
+                font-weight: 300;
+                font-size: 14px;
+            }
+            body {
+                background-color: rgb(255, 255, 255);
+            }
+            .addRecordBtn {
+                position: "absolute"; 
+                z-index: 10;
+                top: 10px;
+                right: 10px;
+                background-color: #0079c1;
+                color: white;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+                font-size: 14px;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .addRecordBtn {
+                background-color: #005a87;
+            }
+        </style>
+        <!--importing the css and libraries for esri.js-->
+        <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
+        <script src="https://js.arcgis.com/5.1/"></script>
+        <!--loading the modules-->
+        <script>
+            require([ 
+                "esri/config", 
+                "esri/Map", 
+                "esri/views/MapView",
+                "esri/Graphic",
+                "esri/widgets/Locate",
+                "esri/widgets/Expand",
+                "esri/widgets/Search",
+                "esri/layers/FeatureLayer"
+                    
+            ], (esriConfig, Map, MapView, Graphic, Locate, Expand, Search, FeatureLayer) => {
+            
+                //adding API Key
+                //esriConfig.apiKey = "AAPTa1lLOfH-sqzm0Dwzwg9PZFQ..4XKxdWIKfFORXDSLqTmYChblSOEAOLY8UmCya3kvOj24pniJtf_sPVbtdui8UU9zukdlVJmdU56yngoAAA6me5l886UtFGtBGvAG_ndHLrJdrQCKueo0uFY_h2rhLr6s53dTGY9vTbnaYm47YgNec1AWtEjRpXYhyHdtKOysSWyqspZU3fgO1wI7HK_JjM6GBOzyyxMYT4PY4WL0yJXfj5yh3V2aE2nUFgDOdWUHUzFh69mF1q7Nz9DdKLSIugaGcextBX6z3uOyaTyAOUjk1GNWPg8.AT1_VsMN0Wpt";
 
+                const map = new Map ({
+                    basemap: "topo"
+                });
+
+                const view = new MapView({
+                    map: map,
+                    center: [-81.1329, 32.0043],
+                    zoom: 11,
+                    container: "viewDiv"
+                });
+
+                //Adding locate widget per the documentation along with the graphic marker
+                const locateBtn = new Locate({
+                    view: view
+                });
+
+                //Add the locate widget to the top left corner of the view
+                view.ui.add(locateBtn, {
+                    position: "top-left"
+                });
+
+                //Adding the search widget from Lab 3 but decided to change the position
+                const searchWidget = new Search({
+                    view: view
+                    });
+                // Adds the search widget below other elements in the top left corner of the view
+                // view.ui.add(searchWidget, {
+                    // position: "top-right",
+                //});
+
+                // Constructing the Expand widget for the search bar to conserve screen space
+                const searchExpand = new Expand({
+                    view: view,
+                    content: searchWidget,
+                    expandIcon: "search",
+                    group: "primary"
+                });
+                view.ui.add(searchExpand, "top-right");
+
+                //Adding feature layer
+                const layer = new FeatureLayer({
+                    //URL to Survey123 service
+                    url: "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/survey123_2ffee82682f4477f9459dc646c11c11a_results/FeatureServer"
+                });
+
+                //I added the following AI suggested error catches to see why I was having issues with my Survey123 form. 
+                layer.when(() => { 
+                    console.log("Layer loaded");
+                    console.log("Title:", layer.title);
+                    console.log("Geometry Type:", layer.geometryType);
+                })
+                .catch((error) => {
+                    console.error("Layer failed:", error);
+                });
+                //Adding layer to map
+                map.add(layer);
+        });
+        </script>
+    </head>
+    <body>
+    
+        <h1>Hello - This is GEOG 576 Lab 4 with API key not engaged.</h1>
+        <a href="https://arcg.is/0vyqP50" target="_blank" class="addRecordBtn">Add Record</a>
+        <div id="viewDiv"></div>
+    </body>
+</html>
