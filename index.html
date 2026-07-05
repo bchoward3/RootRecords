@@ -4,129 +4,188 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>RootRecords</title>
-
     <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
-
     <style>
       html, body, #viewDiv {
-        padding: 0;
-        margin: 0;
-        height: 100%;
-        width: 100%;
+        padding: 0; margin: 0; height: 100%; width: 100%;
         font-family: 'Georgia', serif;
       }
+
+      /* ── Header ── */
       #header {
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 48px;
-        background: #1a1a2e;
-        color: #e8d5b0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 16px;
-        z-index: 100;
+        position: absolute; top: 0; left: 0; right: 0; height: 48px;
+        background: #1a1a2e; color: #e8d5b0;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 16px; z-index: 100;
         box-shadow: 0 2px 6px rgba(0,0,0,0.4);
       }
       #header h1 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 400;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #e8d5b0;
-        font-family: 'Georgia', serif;
+        margin: 0; font-size: 18px; font-weight: 400;
+        letter-spacing: 2px; text-transform: uppercase;
+        color: #e8d5b0; font-family: 'Georgia', serif;
       }
-      #header span {
-        font-size: 11px;
-        color: #9a8c72;
-        letter-spacing: 1px;
-      }
-      #viewDiv {
-        position: absolute;
-        top: 48px;
-        bottom: 0;
-        left: 0;
-        right: 0;
-      }
+      #header span { font-size: 11px; color: #9a8c72; letter-spacing: 1px; }
+
+      /* ── Map ── */
+      #viewDiv { position: absolute; top: 48px; bottom: 0; left: 0; right: 0; }
+
+      /* ── Layer toggle ── */
       #layerToggle {
-        background: white;
-        padding: 12px 16px;
-        border-radius: 4px;
+        background: white; padding: 12px 16px; border-radius: 4px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-        font-size: 13px;
-        line-height: 1.8;
-        font-family: 'Georgia', serif;
+        font-size: 13px; line-height: 1.8; font-family: 'Georgia', serif;
       }
       #layerToggle b {
-        display: block;
-        font-size: 11px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: #666;
-        margin-bottom: 6px;
-        font-family: 'Georgia', serif;
+        display: block; font-size: 11px; letter-spacing: 1px;
+        text-transform: uppercase; color: #666; margin-bottom: 6px;
       }
-      #layerToggle label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        color: #333;
-      }
+      #layerToggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #333; }
       #layerToggle input[type="checkbox"] { cursor: pointer; }
+
+      /* ── Filter panel ── */
       #searchPanel {
-        background: white;
-        padding: 12px 16px;
-        border-radius: 4px;
+        background: white; padding: 12px 16px; border-radius: 4px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-        width: 260px;
-        font-family: 'Georgia', serif;
+        width: 260px; font-family: 'Georgia', serif;
       }
       #searchPanel b {
-        display: block;
-        font-size: 11px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: #666;
-        margin-bottom: 8px;
+        display: block; font-size: 11px; letter-spacing: 1px;
+        text-transform: uppercase; color: #666; margin-bottom: 8px;
       }
-      #personSearch {
-        width: 100%;
-        padding: 6px 10px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        font-size: 13px;
-        box-sizing: border-box;
-        font-family: 'Georgia', serif;
+
+      /* ── Shared button/input styles ── */
+      .rr-input {
+        width: 100%; padding: 6px 10px; border: 1px solid #ccc;
+        border-radius: 3px; font-size: 13px; box-sizing: border-box;
+        font-family: 'Georgia', serif; margin-bottom: 6px;
       }
-      #searchBtn {
-        margin-top: 8px;
-        width: 100%;
-        padding: 7px;
-        background: #1a1a2e;
-        color: #e8d5b0;
-        border: none;
-        border-radius: 3px;
-        font-size: 13px;
-        cursor: pointer;
-        font-family: 'Georgia', serif;
-        letter-spacing: 1px;
+      .rr-btn {
+        width: 100%; padding: 7px; background: #1a1a2e; color: #e8d5b0;
+        border: none; border-radius: 3px; font-size: 13px; cursor: pointer;
+        font-family: 'Georgia', serif; letter-spacing: 1px; margin-top: 4px;
       }
-      #searchBtn:hover { background: #2d2d4e; }
-      #clearBtn {
-        margin-top: 4px;
-        width: 100%;
-        padding: 6px;
-        background: transparent;
-        color: #666;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        font-size: 12px;
-        cursor: pointer;
-        font-family: 'Georgia', serif;
+      .rr-btn:hover { background: #2d2d4e; }
+      .rr-btn-secondary {
+        width: 100%; padding: 6px; background: transparent; color: #666;
+        border: 1px solid #ccc; border-radius: 3px; font-size: 12px;
+        cursor: pointer; font-family: 'Georgia', serif; margin-top: 4px;
       }
-      #clearBtn:hover { background: #f5f5f5; }
+      .rr-btn-secondary:hover { background: #f5f5f5; }
+      .rr-btn-danger {
+        width: 100%; padding: 6px; background: #8b1a1a; color: #fff;
+        border: none; border-radius: 3px; font-size: 12px;
+        cursor: pointer; font-family: 'Georgia', serif; margin-top: 4px;
+      }
+      .rr-btn-danger:hover { background: #a02020; }
+
+      /* ── Custom Add Site Panel ── */
+      #addSitePanel {
+        position: absolute; top: 58px; right: 10px;
+        width: 320px; background: white; border-radius: 6px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        z-index: 200; display: none; max-height: calc(100vh - 80px);
+        overflow-y: auto; font-family: 'Georgia', serif;
+      }
+      #addSitePanel.visible { display: block; }
+
+      .panel-header {
+        background: #1a1a2e; color: #e8d5b0; padding: 12px 16px;
+        display: flex; justify-content: space-between; align-items: center;
+        border-radius: 6px 6px 0 0;
+        font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+      }
+      .panel-header button {
+        background: none; border: none; color: #e8d5b0;
+        font-size: 18px; cursor: pointer; padding: 0; line-height: 1;
+      }
+      .panel-body { padding: 14px 16px; }
+
+      /* Site type selector */
+      .site-type-grid {
+        display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+        margin-bottom: 14px;
+      }
+      .site-type-btn {
+        padding: 10px 4px; border: 2px solid #ddd; border-radius: 4px;
+        background: white; cursor: pointer; text-align: center;
+        font-family: 'Georgia', serif; font-size: 11px; color: #333;
+        transition: all 0.15s;
+      }
+      .site-type-btn:hover { border-color: #1a1a2e; }
+      .site-type-btn.active { border-color: #1a1a2e; background: #f0f0f8; font-weight: bold; }
+      .site-type-btn .icon { font-size: 20px; display: block; margin-bottom: 4px; }
+
+      /* Step indicator */
+      .step-indicator {
+        display: flex; gap: 6px; margin-bottom: 14px; align-items: center;
+      }
+      .step { 
+        flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px;
+        transition: background 0.2s;
+      }
+      .step.active { background: #1a1a2e; }
+      .step.done { background: #5a7a5a; }
+
+      /* Section labels */
+      .section-label {
+        font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+        color: #666; margin: 12px 0 6px; font-weight: bold;
+        border-bottom: 1px solid #eee; padding-bottom: 4px;
+      }
+
+      /* Person toggle */
+      .person-toggle {
+        display: flex; gap: 8px; margin-bottom: 12px;
+      }
+      .person-toggle-btn {
+        flex: 1; padding: 8px; border: 2px solid #ddd; border-radius: 4px;
+        background: white; cursor: pointer; font-family: 'Georgia', serif;
+        font-size: 12px; text-align: center; transition: all 0.15s;
+      }
+      .person-toggle-btn:hover { border-color: #1a1a2e; }
+      .person-toggle-btn.active { border-color: #1a1a2e; background: #f0f0f8; font-weight: bold; }
+
+      /* Person search results */
+      #personResults {
+        max-height: 160px; overflow-y: auto; border: 1px solid #ddd;
+        border-radius: 3px; margin-top: 6px; display: none;
+      }
+      .person-result {
+        padding: 8px 10px; cursor: pointer; font-size: 13px;
+        border-bottom: 1px solid #f0f0f0; transition: background 0.1s;
+      }
+      .person-result:hover { background: #f5f5f5; }
+      .person-result.selected { background: #e8f0e8; font-weight: bold; }
+      .person-result .sub { font-size: 11px; color: #888; margin-top: 2px; }
+
+      /* Map click instruction banner */
+      #clickBanner {
+        position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+        background: #1a1a2e; color: #e8d5b0; padding: 10px 20px;
+        border-radius: 20px; font-size: 13px; letter-spacing: 0.5px;
+        z-index: 150; display: none; pointer-events: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+      #clickBanner.visible { display: block; }
+
+      /* Status message */
+      .status-msg {
+        padding: 8px 10px; border-radius: 3px; font-size: 12px;
+        margin-top: 8px; display: none;
+      }
+      .status-msg.success { background: #e8f0e8; color: #2d5a2d; display: block; }
+      .status-msg.error { background: #f0e8e8; color: #5a2d2d; display: block; }
+      .status-msg.info { background: #e8eaf0; color: #2d2d5a; display: block; }
+
+      /* Add Site trigger button (in UI) */
+      #addSiteTrigger {
+        background: white; padding: 10px 14px; border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer;
+        font-family: 'Georgia', serif; font-size: 12px; color: #1a1a2e;
+        border: none; display: flex; align-items: center; gap: 6px;
+        letter-spacing: 0.5px;
+      }
+      #addSiteTrigger:hover { background: #f5f5f5; }
     </style>
   </head>
   <body>
@@ -137,6 +196,7 @@
 
     <div id="viewDiv"></div>
 
+    <!-- Layer toggle -->
     <div id="layerToggle">
       <b>Layers</b>
       <label><input type="checkbox" id="toggleGraves" checked /> Graves</label>
@@ -144,17 +204,112 @@
       <label><input type="checkbox" id="toggleHouses" checked /> Houses &amp; Sites</label>
     </div>
 
+    <!-- Person filter -->
     <div id="searchPanel">
       <b>Filter by Person</b>
-      <input type="text" id="personSearch" placeholder="Enter name..." />
-      <button id="searchBtn">Search</button>
-      <button id="clearBtn">Clear filter</button>
+      <input type="text" id="personSearch" class="rr-input" placeholder="Enter name..." />
+      <button id="searchBtn" class="rr-btn">Search</button>
+      <button id="clearBtn" class="rr-btn-secondary">Clear filter</button>
+    </div>
+
+    <!-- Add Site trigger button -->
+    <button id="addSiteTrigger">＋ Add Site</button>
+
+    <!-- Map click instruction banner -->
+    <div id="clickBanner">Click the map to place the site location</div>
+
+    <!-- ── Custom Add Site Panel ── -->
+    <div id="addSitePanel">
+      <div class="panel-header">
+        <span id="panelTitle">Add New Site</span>
+        <button id="closePanel" title="Cancel">✕</button>
+      </div>
+      <div class="panel-body">
+
+        <!-- Step indicator -->
+        <div class="step-indicator">
+          <div class="step active" id="step1bar"></div>
+          <div class="step" id="step2bar"></div>
+          <div class="step" id="step3bar"></div>
+        </div>
+
+        <!-- STEP 1: Choose site type -->
+        <div id="step1">
+          <div class="section-label">Select Site Type</div>
+          <div class="site-type-grid">
+            <button class="site-type-btn" data-type="grave">
+              <span class="icon">⚰</span>Grave
+            </button>
+            <button class="site-type-btn" data-type="birthplace">
+              <span class="icon">🏠</span>Birthplace
+            </button>
+            <button class="site-type-btn" data-type="house">
+              <span class="icon">🏡</span>House / Site
+            </button>
+          </div>
+          <button class="rr-btn" id="proceedToPlace" disabled>Next: Place on Map →</button>
+        </div>
+
+        <!-- STEP 2: Place point (auto-advances when map clicked) -->
+        <div id="step2" style="display:none;">
+          <div class="section-label">Place Location</div>
+          <p style="font-size:12px; color:#666; margin:0 0 10px;">
+            Click anywhere on the map to place the site. You can adjust the location before saving.
+          </p>
+          <div id="coordDisplay" style="font-size:11px; color:#888; margin-bottom:10px;"></div>
+          <button class="rr-btn-secondary" id="backToStep1">← Back</button>
+        </div>
+
+        <!-- STEP 3: Fill in details -->
+        <div id="step3" style="display:none;">
+
+          <!-- Site fields (dynamic per type) -->
+          <div class="section-label" id="siteFieldsLabel">Site Details</div>
+          <div id="siteFields"></div>
+
+          <!-- Person section -->
+          <div class="section-label">Person Record</div>
+          <p style="font-size:11px; color:#888; margin:0 0 8px;">
+            Link this site to a person. Search first to avoid duplicates.
+          </p>
+          <div class="person-toggle">
+            <button class="person-toggle-btn active" id="btnNewPerson">New Person</button>
+            <button class="person-toggle-btn" id="btnExistingPerson">Existing Person</button>
+          </div>
+
+          <!-- New person fields -->
+          <div id="newPersonFields">
+            <input type="text" class="rr-input" id="pName" placeholder="Full name *" />
+            <input type="text" class="rr-input" id="pDOB" placeholder="Date of Birth (e.g. 1842-03-15)" />
+            <input type="text" class="rr-input" id="pDOD" placeholder="Date of Death (e.g. 1910-11-02)" />
+            <input type="text" class="rr-input" id="pFather" placeholder="Father's name" />
+            <input type="text" class="rr-input" id="pMother" placeholder="Mother's name" />
+          </div>
+
+          <!-- Existing person search -->
+          <div id="existingPersonFields" style="display:none;">
+            <input type="text" class="rr-input" id="existingPersonSearch" placeholder="Search by name..." />
+            <button class="rr-btn-secondary" id="searchExistingBtn">Search Persons</button>
+            <div id="personResults"></div>
+            <div id="selectedPersonDisplay" style="font-size:12px; color:#2d5a2d; margin-top:6px; display:none;"></div>
+          </div>
+
+          <div id="statusMsg" class="status-msg"></div>
+
+          <div style="margin-top:14px; display:flex; gap:8px;">
+            <button class="rr-btn-secondary" id="backToStep2" style="flex:1;">← Back</button>
+            <button class="rr-btn" id="submitRecord" style="flex:2;">Save Record</button>
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <script type="module">
       import Map from "https://js.arcgis.com/5.1/@arcgis/core/Map.js";
       import MapView from "https://js.arcgis.com/5.1/@arcgis/core/views/MapView.js";
       import FeatureLayer from "https://js.arcgis.com/5.1/@arcgis/core/layers/FeatureLayer.js";
+      import Graphic from "https://js.arcgis.com/5.1/@arcgis/core/Graphic.js";
       import Locate from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Locate.js";
       import Home from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Home.js";
       import Search from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Search.js";
@@ -165,8 +320,9 @@
       import { on } from "https://js.arcgis.com/5.1/@arcgis/core/core/reactiveUtils.js";
 
       const SERVICE_URL = "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/RootRecords/FeatureServer";
+      const PERSONS_URL = `${SERVICE_URL}/3`;
 
-      // ── Popup action buttons (edit + delete) ──
+      // ── Popup actions ──
       const popupActions = [
         { title: "Edit record", id: "edit-record", className: "esri-icon-edit" },
         { title: "Delete record", id: "delete-record", className: "esri-icon-trash" }
@@ -174,134 +330,107 @@
 
       // ── Popup templates ──
       const gravePopup = {
-        title: "⚰ {person_id}",
-        actions: popupActions,
+        title: "⚰ {person_id}", actions: popupActions,
         content: [{ type: "fields", fieldInfos: [
-          { fieldName: "DOB",          label: "Date of Birth" },
-          { fieldName: "DOD",          label: "Date of Death" },
-          { fieldName: "Father",       label: "Father" },
-          { fieldName: "Mother",       label: "Mother" },
+          { fieldName: "DOB", label: "Date of Birth" },
+          { fieldName: "DOD", label: "Date of Death" },
+          { fieldName: "Father", label: "Father" },
+          { fieldName: "Mother", label: "Mother" },
           { fieldName: "CemeteryName", label: "Cemetery" },
-          { fieldName: "County",       label: "County" },
-          { fieldName: "State",        label: "State" },
-          { fieldName: "Description",  label: "Notes" }
-        ]}]
-      };
-
-      const birthplacePopup = {
-        title: "🏠 {person_id}",
-        actions: popupActions,
-        content: [{ type: "fields", fieldInfos: [
-          { fieldName: "DOB",         label: "Date of Birth" },
-          { fieldName: "Father",      label: "Father" },
-          { fieldName: "Mother",      label: "Mother" },
-          { fieldName: "City",        label: "City" },
-          { fieldName: "County",      label: "County" },
-          { fieldName: "State",       label: "State" },
+          { fieldName: "County", label: "County" },
+          { fieldName: "State", label: "State" },
           { fieldName: "Description", label: "Notes" }
         ]}]
       };
-
-      const housePopup = {
-        title: "🏡 {person_id}",
-        actions: popupActions,
+      const birthplacePopup = {
+        title: "🏠 {person_id}", actions: popupActions,
         content: [{ type: "fields", fieldInfos: [
-          { fieldName: "Father",      label: "Father" },
-          { fieldName: "Mother",      label: "Mother" },
-          { fieldName: "City",        label: "City" },
-          { fieldName: "County",      label: "County" },
-          { fieldName: "State",       label: "State" },
-          { fieldName: "Address",     label: "Address" },
+          { fieldName: "DOB", label: "Date of Birth" },
+          { fieldName: "Father", label: "Father" },
+          { fieldName: "Mother", label: "Mother" },
+          { fieldName: "City", label: "City" },
+          { fieldName: "County", label: "County" },
+          { fieldName: "State", label: "State" },
+          { fieldName: "Description", label: "Notes" }
+        ]}]
+      };
+      const housePopup = {
+        title: "🏡 {person_id}", actions: popupActions,
+        content: [{ type: "fields", fieldInfos: [
+          { fieldName: "Father", label: "Father" },
+          { fieldName: "Mother", label: "Mother" },
+          { fieldName: "City", label: "City" },
+          { fieldName: "County", label: "County" },
+          { fieldName: "State", label: "State" },
+          { fieldName: "Address", label: "Address" },
           { fieldName: "Description", label: "Notes" }
         ]}]
       };
 
       // ── Renderers ──
-      const graveRenderer = {
-        type: "simple",
-        symbol: { type: "simple-marker", style: "square",
-          color: [26, 26, 46, 220], size: "10px",
-          outline: { color: [232, 213, 176], width: 1.5 }
-        }
-      };
-      const birthplaceRenderer = {
-        type: "simple",
-        symbol: { type: "simple-marker", style: "circle",
-          color: [139, 69, 19, 220], size: "10px",
-          outline: { color: [255, 255, 255], width: 1.5 }
-        }
-      };
-      const houseRenderer = {
-        type: "simple",
-        symbol: { type: "simple-marker", style: "diamond",
-          color: [85, 107, 47, 220], size: "12px",
-          outline: { color: [255, 255, 255], width: 1.5 }
-        }
-      };
+      const graveRenderer = { type: "simple", symbol: {
+        type: "simple-marker", style: "square", color: [26,26,46,220], size: "10px",
+        outline: { color: [232,213,176], width: 1.5 }
+      }};
+      const birthplaceRenderer = { type: "simple", symbol: {
+        type: "simple-marker", style: "circle", color: [139,69,19,220], size: "10px",
+        outline: { color: [255,255,255], width: 1.5 }
+      }};
+      const houseRenderer = { type: "simple", symbol: {
+        type: "simple-marker", style: "diamond", color: [85,107,47,220], size: "12px",
+        outline: { color: [255,255,255], width: 1.5 }
+      }};
 
-      // ── Layers ──
+      // ── Feature Layers ──
       const gravesLayer = new FeatureLayer({
-        url: `${SERVICE_URL}/2`,
-        title: "Graves",
-        outFields: ["*"],
-        popupTemplate: gravePopup,
-        renderer: graveRenderer,
-        editingEnabled: true,
-        formTemplate: {
-          elements: [
-            { type: "field", fieldName: "person_id",     label: "Person Name *" },
-            { type: "field", fieldName: "DOB",           label: "Date of Birth" },
-            { type: "field", fieldName: "DOD",           label: "Date of Death" },
-            { type: "field", fieldName: "Father",        label: "Father" },
-            { type: "field", fieldName: "Mother",        label: "Mother" },
-            { type: "field", fieldName: "CemeteryName",  label: "Cemetery Name" },
-            { type: "field", fieldName: "Address",       label: "Address" },
-            { type: "field", fieldName: "City",          label: "City" },
-            { type: "field", fieldName: "County",        label: "County" },
-            { type: "field", fieldName: "State",         label: "State" },
-            { type: "field", fieldName: "Description",   label: "Notes / Description" }
-          ]
-        }
+        url: `${SERVICE_URL}/2`, title: "Graves", outFields: ["*"],
+        popupTemplate: gravePopup, renderer: graveRenderer, editingEnabled: true,
+        formTemplate: { elements: [
+          { type: "field", fieldName: "person_id", label: "Person Name *" },
+          { type: "field", fieldName: "DOB", label: "Date of Birth" },
+          { type: "field", fieldName: "DOD", label: "Date of Death" },
+          { type: "field", fieldName: "Father", label: "Father" },
+          { type: "field", fieldName: "Mother", label: "Mother" },
+          { type: "field", fieldName: "CemeteryName", label: "Cemetery Name" },
+          { type: "field", fieldName: "Address", label: "Address" },
+          { type: "field", fieldName: "City", label: "City" },
+          { type: "field", fieldName: "County", label: "County" },
+          { type: "field", fieldName: "State", label: "State" },
+          { type: "field", fieldName: "Description", label: "Notes / Description" }
+        ]}
       });
       const birthplaceLayer = new FeatureLayer({
-        url: `${SERVICE_URL}/0`,
-        title: "Birthplaces",
-        outFields: ["*"],
-        popupTemplate: birthplacePopup,
-        renderer: birthplaceRenderer,
-        editingEnabled: true,
-        formTemplate: {
-          elements: [
-            { type: "field", fieldName: "person_id",   label: "Person Name *" },
-            { type: "field", fieldName: "DOB",         label: "Date of Birth" },
-            { type: "field", fieldName: "Father",      label: "Father" },
-            { type: "field", fieldName: "Mother",      label: "Mother" },
-            { type: "field", fieldName: "City",        label: "City" },
-            { type: "field", fieldName: "County",      label: "County" },
-            { type: "field", fieldName: "State",       label: "State" },
-            { type: "field", fieldName: "Description", label: "Notes / Description" }
-          ]
-        }
+        url: `${SERVICE_URL}/0`, title: "Birthplaces", outFields: ["*"],
+        popupTemplate: birthplacePopup, renderer: birthplaceRenderer, editingEnabled: true,
+        formTemplate: { elements: [
+          { type: "field", fieldName: "person_id", label: "Person Name *" },
+          { type: "field", fieldName: "DOB", label: "Date of Birth" },
+          { type: "field", fieldName: "Father", label: "Father" },
+          { type: "field", fieldName: "Mother", label: "Mother" },
+          { type: "field", fieldName: "City", label: "City" },
+          { type: "field", fieldName: "County", label: "County" },
+          { type: "field", fieldName: "State", label: "State" },
+          { type: "field", fieldName: "Description", label: "Notes / Description" }
+        ]}
       });
       const houseLayer = new FeatureLayer({
-        url: `${SERVICE_URL}/1`,
-        title: "Houses & Sites",
-        outFields: ["*"],
-        popupTemplate: housePopup,
-        renderer: houseRenderer,
-        editingEnabled: true,
-        formTemplate: {
-          elements: [
-            { type: "field", fieldName: "person_id",   label: "Person Name *" },
-            { type: "field", fieldName: "Father",      label: "Father" },
-            { type: "field", fieldName: "Mother",      label: "Mother" },
-            { type: "field", fieldName: "Address",     label: "Address" },
-            { type: "field", fieldName: "City",        label: "City" },
-            { type: "field", fieldName: "County",      label: "County" },
-            { type: "field", fieldName: "State",       label: "State" },
-            { type: "field", fieldName: "Description", label: "Notes / Description" }
-          ]
-        }
+        url: `${SERVICE_URL}/1`, title: "Houses & Sites", outFields: ["*"],
+        popupTemplate: housePopup, renderer: houseRenderer, editingEnabled: true,
+        formTemplate: { elements: [
+          { type: "field", fieldName: "person_id", label: "Person Name *" },
+          { type: "field", fieldName: "Father", label: "Father" },
+          { type: "field", fieldName: "Mother", label: "Mother" },
+          { type: "field", fieldName: "Address", label: "Address" },
+          { type: "field", fieldName: "City", label: "City" },
+          { type: "field", fieldName: "County", label: "County" },
+          { type: "field", fieldName: "State", label: "State" },
+          { type: "field", fieldName: "Description", label: "Notes / Description" }
+        ]}
+      });
+
+      // Persons table (non-spatial, no renderer needed)
+      const personsTable = new FeatureLayer({
+        url: PERSONS_URL, title: "Persons", outFields: ["*"]
       });
 
       // ── Map & View ──
@@ -309,72 +438,28 @@
         basemap: "topo-vector",
         layers: [gravesLayer, birthplaceLayer, houseLayer]
       });
-
       const view = new MapView({
-        map,
-        //--For the time being centered on Kentucky where I plan to complete my family history research in September--
-        center: [-85.3, 37.8],
-        zoom: 7,
-        container: "viewDiv",
-        popup: {
-          dockEnabled: true,
-          dockOptions: { position: "bottom-right", breakpoint: false }
-        }
+        map, center: [-85.3, 37.8], zoom: 7, container: "viewDiv",
+        popup: { dockEnabled: true, dockOptions: { position: "bottom-right", breakpoint: false } }
       });
 
-      // ── Widgets ──
+      // ── Standard Widgets ──
       view.ui.add(new Home({ view }), "top-left");
       view.ui.add(new Locate({ view }), "top-left");
-
-      const searchExpand = new Expand({
-        view,
-        content: new Search({ view }),
-        expandIcon: "search",
-        group: "top-right"
-      });
-      view.ui.add(searchExpand, "top-right");
-
-      const legendExpand = new Expand({
-        view,
-        content: new Legend({ view }),
-        expandIcon: "legend",
-        expandTooltip: "Legend",
-        group: "top-right"
-      });
-      view.ui.add(legendExpand, "top-right");
-
-      // ── Editor widget ──
+      view.ui.add(new Expand({ view, content: new Search({ view }), expandIcon: "search", group: "top-right" }), "top-right");
+      view.ui.add(new Expand({ view, content: new Legend({ view }), expandIcon: "legend", expandTooltip: "Legend", group: "top-right" }), "top-right");
       const editor = new Editor({ view });
-      const editorExpand = new Expand({
-        view,
-        content: editor,
-        expandIcon: "edit",
-        expandTooltip: "Add / edit records",
-        group: "top-right"
-      });
+      const editorExpand = new Expand({ view, content: editor, expandIcon: "edit", expandTooltip: "Edit existing records", group: "top-right" });
       view.ui.add(editorExpand, "top-right");
-
-      const filterExpand = new Expand({
-        view,
-        content: document.getElementById("searchPanel"),
-        expandIcon: "filter",
-        expandTooltip: "Filter by person",
-        group: "top-right"
-      });
-      view.ui.add(filterExpand, "top-right");
-
+      view.ui.add(new Expand({ view, content: new BasemapGallery({ view }), expandIcon: "basemap", expandTooltip: "Change basemap", group: "top-right" }), "top-right");
+      view.ui.add(new Expand({ view, content: document.getElementById("searchPanel"), expandIcon: "filter", expandTooltip: "Filter by person", group: "top-right" }), "top-right");
       view.ui.add(document.getElementById("layerToggle"), "bottom-left");
+      view.ui.add(document.getElementById("addSiteTrigger"), "top-left");
 
       // ── Layer toggles ──
-      document.getElementById("toggleGraves").addEventListener("change", e => {
-        gravesLayer.visible = e.target.checked;
-      });
-      document.getElementById("toggleBirthplaces").addEventListener("change", e => {
-        birthplaceLayer.visible = e.target.checked;
-      });
-      document.getElementById("toggleHouses").addEventListener("change", e => {
-        houseLayer.visible = e.target.checked;
-      });
+      document.getElementById("toggleGraves").addEventListener("change", e => gravesLayer.visible = e.target.checked);
+      document.getElementById("toggleBirthplaces").addEventListener("change", e => birthplaceLayer.visible = e.target.checked);
+      document.getElementById("toggleHouses").addEventListener("change", e => houseLayer.visible = e.target.checked);
 
       // ── Person filter ──
       document.getElementById("searchBtn").addEventListener("click", () => {
@@ -385,7 +470,6 @@
         birthplaceLayer.definitionExpression = where;
         houseLayer.definitionExpression = where;
       });
-
       document.getElementById("clearBtn").addEventListener("click", () => {
         document.getElementById("personSearch").value = "";
         gravesLayer.definitionExpression = "";
@@ -393,66 +477,347 @@
         houseLayer.definitionExpression = "";
       });
 
-      // ── Basemap Gallery ──
-      const basemapGallery = new BasemapGallery({ view });
-      const basemapExpand = new Expand({
-        view,
-        content: basemapGallery,
-        expandIcon: "basemap",
-        expandTooltip: "Change basemap",
-        group: "top-right"
-      });
-      view.ui.add(basemapExpand, "top-right");
-
       // ── Popup action handlers ──
-      on(
-        () => view.popup,
-        "trigger-action",
-        async (event) => {
-          const feature = view.popup.selectedFeature;
-          if (!feature) return;
-
-          const layers = [gravesLayer, birthplaceLayer, houseLayer];
-          let targetLayer = null;
-          for (const l of layers) {
-            if (feature.sourceLayer && feature.sourceLayer.url && l.url &&
-                feature.sourceLayer.url.toLowerCase().includes(l.url.toLowerCase().split("/FeatureServer")[0].split("/").pop())) {
-              targetLayer = l;
-              break;
-            }
-          }
-          if (!targetLayer) targetLayer = feature.sourceLayer || feature.layer || gravesLayer;
-
-          if (event.action.id === "edit-record") {
-            editorExpand.expanded = true;
-            view.popup.close();
-          }
-
-          if (event.action.id === "delete-record") {
-            const name = feature.attributes.person_id || "this feature";
-            const confirmed = confirm(
-              `Delete record for "${name}"? This cannot be undone.`
-            );
-            if (!confirmed) return;
-            try {
-              const oid = feature.attributes[targetLayer.objectIdField || "OBJECTID"];
-              await targetLayer.applyEdits({
-                deleteFeatures: [{ objectId: oid }]
-              });
-              view.popup.close();
-            } catch (err) {
-              console.error("Delete failed:", err);
-              alert("Delete failed — check console for details.");
-            }
+      on(() => view.popup, "trigger-action", async (event) => {
+        const feature = view.popup.selectedFeature;
+        if (!feature) return;
+        const layers = [gravesLayer, birthplaceLayer, houseLayer];
+        let targetLayer = feature.sourceLayer || feature.layer || gravesLayer;
+        for (const l of layers) {
+          if (feature.sourceLayer?.url?.includes(l.url?.split("/FeatureServer")[0]?.split("/").pop())) {
+            targetLayer = l; break;
           }
         }
-      );
-      gravesLayer.when(() => console.log("Graves loaded"))
-        .catch(e => console.error("Graves failed:", e));
-      birthplaceLayer.when(() => console.log("Birthplaces loaded"))
-        .catch(e => console.error("Birthplaces failed:", e));
-      houseLayer.when(() => console.log("Houses loaded"))
-        .catch(e => console.error("Houses failed:", e));
+        if (event.action.id === "edit-record") { editorExpand.expanded = true; view.popup.close(); }
+        if (event.action.id === "delete-record") {
+          const name = feature.attributes.person_id || "this feature";
+          if (!confirm(`Delete record for "${name}"? This cannot be undone.`)) return;
+          try {
+            const oid = feature.attributes[targetLayer.objectIdField || "OBJECTID"];
+            await targetLayer.applyEdits({ deleteFeatures: [{ objectId: oid }] });
+            view.popup.close();
+          } catch (err) { console.error("Delete failed:", err); alert("Delete failed."); }
+        }
+      });
+
+      // ════════════════════════════════════════════
+      // ── CUSTOM ADD SITE WORKFLOW ──
+      // ════════════════════════════════════════════
+      let currentSiteType = null;   // "grave" | "birthplace" | "house"
+      let placedPoint = null;        // esri Point geometry
+      let mapClickHandler = null;    // handle to remove click listener
+      let selectedExistingPerson = null; // { globalId, name }
+      let isNewPerson = true;
+
+      const panel = document.getElementById("addSitePanel");
+      const clickBanner = document.getElementById("clickBanner");
+
+      // ── Site field definitions per type ──
+      const siteFieldDefs = {
+        grave: [
+          { id: "sCemeteryName", label: "Cemetery Name", field: "CemeteryName" },
+          { id: "sAddress",      label: "Address",       field: "Address" },
+          { id: "sCity",         label: "City",          field: "City" },
+          { id: "sCounty",       label: "County",        field: "County" },
+          { id: "sState",        label: "State",         field: "State" },
+          { id: "sDescription",  label: "Notes",         field: "Description" }
+        ],
+        birthplace: [
+          { id: "sCity",        label: "City",   field: "City" },
+          { id: "sCounty",      label: "County", field: "County" },
+          { id: "sState",       label: "State",  field: "State" },
+          { id: "sDescription", label: "Notes",  field: "Description" }
+        ],
+        house: [
+          { id: "sAddress",     label: "Address", field: "Address" },
+          { id: "sCity",        label: "City",    field: "City" },
+          { id: "sCounty",      label: "County",  field: "County" },
+          { id: "sState",       label: "State",   field: "State" },
+          { id: "sDescription", label: "Notes",   field: "Description" }
+        ]
+      };
+
+      // ── Step helpers ──
+      function showStep(n) {
+        [1,2,3].forEach(i => {
+          document.getElementById(`step${i}`).style.display = i === n ? "block" : "none";
+          const bar = document.getElementById(`step${i}bar`);
+          bar.className = "step" + (i < n ? " done" : i === n ? " active" : "");
+        });
+      }
+
+      function setStatus(msg, type) {
+        const el = document.getElementById("statusMsg");
+        el.textContent = msg;
+        el.className = `status-msg ${type}`;
+      }
+
+      function resetPanel() {
+        currentSiteType = null;
+        placedPoint = null;
+        selectedExistingPerson = null;
+        isNewPerson = true;
+        if (mapClickHandler) { mapClickHandler.remove(); mapClickHandler = null; }
+        clickBanner.classList.remove("visible");
+        document.querySelectorAll(".site-type-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById("proceedToPlace").disabled = true;
+        document.getElementById("coordDisplay").textContent = "";
+        document.getElementById("siteFields").innerHTML = "";
+        document.getElementById("pName").value = "";
+        document.getElementById("pDOB").value = "";
+        document.getElementById("pDOD").value = "";
+        document.getElementById("pFather").value = "";
+        document.getElementById("pMother").value = "";
+        document.getElementById("existingPersonSearch").value = "";
+        document.getElementById("personResults").innerHTML = "";
+        document.getElementById("personResults").style.display = "none";
+        document.getElementById("selectedPersonDisplay").style.display = "none";
+        document.getElementById("statusMsg").className = "status-msg";
+        document.getElementById("btnNewPerson").classList.add("active");
+        document.getElementById("btnExistingPerson").classList.remove("active");
+        document.getElementById("newPersonFields").style.display = "block";
+        document.getElementById("existingPersonFields").style.display = "none";
+        showStep(1);
+      }
+
+      // ── Open / close panel ──
+      document.getElementById("addSiteTrigger").addEventListener("click", () => {
+        resetPanel();
+        panel.classList.add("visible");
+      });
+      document.getElementById("closePanel").addEventListener("click", () => {
+        panel.classList.remove("visible");
+        resetPanel();
+      });
+
+      // ── Step 1: Select site type ──
+      document.querySelectorAll(".site-type-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".site-type-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentSiteType = btn.dataset.type;
+          document.getElementById("proceedToPlace").disabled = false;
+          const titles = { grave: "Add Grave", birthplace: "Add Birthplace", house: "Add House / Site" };
+          document.getElementById("panelTitle").textContent = titles[currentSiteType];
+        });
+      });
+
+      document.getElementById("proceedToPlace").addEventListener("click", () => {
+        showStep(2);
+        clickBanner.classList.add("visible");
+        // Listen for map click to place point
+        mapClickHandler = view.on("click", (e) => {
+          e.stopPropagation();
+          placedPoint = e.mapPoint;
+          const lat = placedPoint.latitude.toFixed(5);
+          const lon = placedPoint.longitude.toFixed(5);
+          document.getElementById("coordDisplay").textContent = `📍 ${lat}, ${lon}`;
+          clickBanner.classList.remove("visible");
+          mapClickHandler.remove();
+          mapClickHandler = null;
+          // Build site-specific fields and advance to step 3
+          buildSiteFields();
+          showStep(3);
+        });
+      });
+
+      document.getElementById("backToStep1").addEventListener("click", () => {
+        if (mapClickHandler) { mapClickHandler.remove(); mapClickHandler = null; }
+        clickBanner.classList.remove("visible");
+        showStep(1);
+      });
+      document.getElementById("backToStep2").addEventListener("click", () => {
+        placedPoint = null;
+        clickBanner.classList.add("visible");
+        showStep(2);
+        mapClickHandler = view.on("click", (e) => {
+          e.stopPropagation();
+          placedPoint = e.mapPoint;
+          const lat = placedPoint.latitude.toFixed(5);
+          const lon = placedPoint.longitude.toFixed(5);
+          document.getElementById("coordDisplay").textContent = `📍 ${lat}, ${lon}`;
+          clickBanner.classList.remove("visible");
+          mapClickHandler.remove(); mapClickHandler = null;
+          showStep(3);
+        });
+      });
+
+      // ── Build site fields dynamically ──
+      function buildSiteFields() {
+        const container = document.getElementById("siteFields");
+        container.innerHTML = "";
+        const defs = siteFieldDefs[currentSiteType] || [];
+        defs.forEach(def => {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.id = def.id;
+          input.className = "rr-input";
+          input.placeholder = def.label;
+          container.appendChild(input);
+        });
+        const labels = { grave: "Grave Details", birthplace: "Birthplace Details", house: "House / Site Details" };
+        document.getElementById("siteFieldsLabel").textContent = labels[currentSiteType];
+      }
+
+      // ── Person toggle (new vs existing) ──
+      document.getElementById("btnNewPerson").addEventListener("click", () => {
+        isNewPerson = true;
+        document.getElementById("btnNewPerson").classList.add("active");
+        document.getElementById("btnExistingPerson").classList.remove("active");
+        document.getElementById("newPersonFields").style.display = "block";
+        document.getElementById("existingPersonFields").style.display = "none";
+      });
+      document.getElementById("btnExistingPerson").addEventListener("click", () => {
+        isNewPerson = false;
+        document.getElementById("btnExistingPerson").classList.add("active");
+        document.getElementById("btnNewPerson").classList.remove("active");
+        document.getElementById("newPersonFields").style.display = "none";
+        document.getElementById("existingPersonFields").style.display = "block";
+      });
+
+      // ── Search existing persons ──
+      document.getElementById("searchExistingBtn").addEventListener("click", async () => {
+        const query = document.getElementById("existingPersonSearch").value.trim();
+        if (!query) return;
+        const resultsDiv = document.getElementById("personResults");
+        resultsDiv.innerHTML = "<div class='person-result'>Searching...</div>";
+        resultsDiv.style.display = "block";
+        try {
+          const result = await personsTable.queryFeatures({
+            where: `Name LIKE '%${query}%'`,
+            outFields: ["*"],
+            returnGeometry: false
+          });
+          resultsDiv.innerHTML = "";
+          if (result.features.length === 0) {
+            resultsDiv.innerHTML = "<div class='person-result'>No results found.</div>";
+            return;
+          }
+          result.features.forEach(f => {
+            const attrs = f.attributes;
+            const div = document.createElement("div");
+            div.className = "person-result";
+            const dob = attrs.DOB ? new Date(attrs.DOB).getFullYear() : "?";
+            const dod = attrs.DOD ? new Date(attrs.DOD).getFullYear() : "?";
+            div.innerHTML = `<strong>${attrs.Name}</strong><div class="sub">${dob} – ${dod}</div>`;
+            div.addEventListener("click", () => {
+              document.querySelectorAll(".person-result").forEach(r => r.classList.remove("selected"));
+              div.classList.add("selected");
+              selectedExistingPerson = { globalId: attrs.GlobalID, name: attrs.Name };
+              const display = document.getElementById("selectedPersonDisplay");
+              display.textContent = `✓ Selected: ${attrs.Name}`;
+              display.style.display = "block";
+            });
+            resultsDiv.appendChild(div);
+          });
+        } catch (err) {
+          resultsDiv.innerHTML = "<div class='person-result'>Search failed.</div>";
+          console.error(err);
+        }
+      });
+
+      // ── Submit record ──
+      document.getElementById("submitRecord").addEventListener("click", async () => {
+        if (!placedPoint) { setStatus("No location set — go back and place a point.", "error"); return; }
+
+        const submitBtn = document.getElementById("submitRecord");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving...";
+
+        try {
+          let personGlobalId = null;
+          let personName = "";
+
+          if (isNewPerson) {
+            // Validate name
+            personName = document.getElementById("pName").value.trim();
+            if (!personName) {
+              setStatus("Person name is required.", "error");
+              submitBtn.disabled = false; submitBtn.textContent = "Save Record";
+              return;
+            }
+            // Write Persons record
+            const personAttrs = {
+              Name: personName,
+              Father: document.getElementById("pFather").value.trim() || null,
+              Mother: document.getElementById("pMother").value.trim() || null
+            };
+            const dobVal = document.getElementById("pDOB").value.trim();
+            const dodVal = document.getElementById("pDOD").value.trim();
+            if (dobVal) personAttrs.DOB = new Date(dobVal).getTime();
+            if (dodVal) personAttrs.DOD = new Date(dodVal).getTime();
+
+            const personResult = await personsTable.applyEdits({
+              addFeatures: [{ attributes: personAttrs }]
+            });
+            if (personResult.addFeatureResults[0].error) throw personResult.addFeatureResults[0].error;
+            // Get the GlobalID of the newly created person
+            const newOid = personResult.addFeatureResults[0].objectId;
+            const personQuery = await personsTable.queryFeatures({
+              where: `OBJECTID = ${newOid}`, outFields: ["GlobalID", "Name"], returnGeometry: false
+            });
+            if (personQuery.features.length > 0) {
+              personGlobalId = personQuery.features[0].attributes.GlobalID;
+            }
+          } else {
+            // Use existing person
+            if (!selectedExistingPerson) {
+              setStatus("Please search and select an existing person.", "error");
+              submitBtn.disabled = false; submitBtn.textContent = "Save Record";
+              return;
+            }
+            personGlobalId = selectedExistingPerson.globalId;
+            personName = selectedExistingPerson.name;
+          }
+
+          // ── Build site attributes ──
+          const siteAttrs = {
+            person_id: personName,
+            person_globalid: personGlobalId
+          };
+          const defs = siteFieldDefs[currentSiteType] || [];
+          defs.forEach(def => {
+            const el = document.getElementById(def.id);
+            if (el && el.value.trim()) siteAttrs[def.field] = el.value.trim();
+          });
+
+          // Add DOB to site record if grave or birthplace (from person fields)
+          if ((currentSiteType === "grave" || currentSiteType === "birthplace") && isNewPerson) {
+            const dobVal = document.getElementById("pDOB").value.trim();
+            const dodVal = document.getElementById("pDOD").value.trim();
+            if (dobVal) siteAttrs.DOB = new Date(dobVal).getTime();
+            if (currentSiteType === "grave" && dodVal) siteAttrs.DOD = new Date(dodVal).getTime();
+          }
+
+          // ── Write site feature ──
+          const layerMap = { grave: gravesLayer, birthplace: birthplaceLayer, house: houseLayer };
+          const targetLayer = layerMap[currentSiteType];
+          const siteGraphic = new Graphic({
+            geometry: placedPoint,
+            attributes: siteAttrs
+          });
+          const siteResult = await targetLayer.applyEdits({ addFeatures: [siteGraphic] });
+          if (siteResult.addFeatureResults[0].error) throw siteResult.addFeatureResults[0].error;
+
+          setStatus(`✓ Record saved for ${personName}`, "success");
+          submitBtn.textContent = "Saved!";
+          setTimeout(() => {
+            panel.classList.remove("visible");
+            resetPanel();
+          }, 1800);
+
+        } catch (err) {
+          console.error("Save failed:", err);
+          setStatus("Save failed — check console for details.", "error");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Save Record";
+        }
+      });
+
+      // ── Error logging ──
+      gravesLayer.when(() => console.log("Graves loaded")).catch(e => console.error("Graves failed:", e));
+      birthplaceLayer.when(() => console.log("Birthplaces loaded")).catch(e => console.error("Birthplaces failed:", e));
+      houseLayer.when(() => console.log("Houses loaded")).catch(e => console.error("Houses failed:", e));
 
     </script>
   </body>
