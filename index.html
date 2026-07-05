@@ -763,7 +763,11 @@
             const personResult = await personsTable.applyEdits({
               addFeatures: [{ attributes: personAttrs }]
             });
-            if (personResult.addFeatureResults[0].error) throw personResult.addFeatureResults[0].error;
+            console.log("Person applyEdits result:", JSON.stringify(personResult));
+            if (personResult.addFeatureResults[0].error) {
+              console.error("Person save error:", personResult.addFeatureResults[0].error);
+              throw personResult.addFeatureResults[0].error;
+            }
             // Get the GlobalID of the newly created person
             const newOid = personResult.addFeatureResults[0].objectId;
             const personQuery = await personsTable.queryFeatures({
@@ -810,7 +814,11 @@
             attributes: siteAttrs
           });
           const siteResult = await targetLayer.applyEdits({ addFeatures: [siteGraphic] });
-          if (siteResult.addFeatureResults[0].error) throw siteResult.addFeatureResults[0].error;
+          console.log("Site applyEdits result:", JSON.stringify(siteResult));
+          if (siteResult.addFeatureResults[0].error) {
+            console.error("Site save error:", siteResult.addFeatureResults[0].error);
+            throw siteResult.addFeatureResults[0].error;
+          }
 
           setStatus(`✓ Record saved for ${personName}`, "success");
           submitBtn.textContent = "Saved!";
@@ -821,7 +829,8 @@
 
         } catch (err) {
           console.error("Save failed:", err);
-          setStatus("Save failed — check console for details.", "error");
+          console.error("Error details:", JSON.stringify(err));
+          setStatus(`Save failed: ${err.message || err.details || JSON.stringify(err)}`, "error");
           submitBtn.disabled = false;
           submitBtn.textContent = "Save Record";
         }
