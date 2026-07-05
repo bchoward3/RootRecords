@@ -226,10 +226,16 @@
       <button id="clearBtn" class="rr-btn-secondary">Clear filter</button>
       <div id="webLegend" style="display:none; margin-top:10px; font-size:11px; color:#555;">
         <div style="margin-bottom:4px; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase;">Generation Key</div>
+        <div style="margin-bottom:3px; font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Ancestors (red)</div>
         <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(100,0,0);"></span> Gen 1 — Parents</div>
         <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(160,40,40);"></span> Gen 2 — Grandparents</div>
         <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(200,100,100);"></span> Gen 3</div>
-        <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(230,170,170);"></span> Gen 4</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(230,170,170);"></span> Gen 4</div>
+        <div style="margin-bottom:3px; font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Descendants (blue)</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(0,0,120);"></span> Gen 1 — Children</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(40,40,180);"></span> Gen 2 — Grandchildren</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(100,100,210);"></span> Gen 3</div>
+        <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(170,170,230);"></span> Gen 4</div>
       </div>
     </div>
 
@@ -526,6 +532,7 @@
         lineageLayer.removeAll();
         lineageLayer.visible = false;
         lineageVisible = false;
+        labelsLayer.removeAll();
         document.getElementById("lineageToggle").textContent = "⬡ Show All Family Web";
         document.getElementById("lineageToggle").classList.remove("active");
         document.getElementById("webLegend").style.display = "none";
@@ -557,6 +564,7 @@
         lineageLayer.removeAll();
         lineageLayer.visible = false;
         lineageVisible = false;
+        labelsLayer.removeAll();
         document.getElementById("lineageToggle").textContent = "⬡ Show All Family Web";
         document.getElementById("lineageToggle").classList.remove("active");
       });
@@ -951,21 +959,53 @@
 
       // ── Lineage graphics layer ──
       const lineageLayer = new GraphicsLayer({ title: "Family Web", listMode: "hide" });
+      const labelsLayer = new GraphicsLayer({ title: "Family Labels", listMode: "hide" });
       map.add(lineageLayer);
+      map.add(labelsLayer);
       view.ui.add(document.getElementById("lineageToggle"), "top-left");
       let lineageVisible = false;
 
-      // ── Generation colors ──
-      const generationColors = [
+      // ── Generation colors — ancestors (red) and descendants (blue) ──
+      const ancestorColors = [
         [100, 0, 0, 230],
         [160, 40, 40, 200],
         [200, 100, 100, 170],
         [230, 170, 170, 140]
       ];
+      const descendantColors = [
+        [0, 0, 120, 230],
+        [40, 40, 180, 200],
+        [100, 100, 210, 170],
+        [170, 170, 230, 140]
+      ];
 
-      // ── Trace family web from a specific person ──
+      // ── Add a name label graphic at a point ──
+      function addLabel(name, point, labeledNames) {
+        const displayName = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        if (labeledNames.has(displayName)) return;
+        labeledNames.add(displayName);
+        labelsLayer.add(new Graphic({
+          geometry: point,
+          symbol: {
+            type: "text",
+            color: [26, 26, 46, 255],
+            haloColor: [255, 255, 255, 240],
+            haloSize: "2px",
+            text: displayName,
+            font: { size: 10, family: "Georgia", weight: "bold" },
+            horizontalAlignment: "left",
+            xoffset: 8,
+            yoffset: 4
+          }
+        }));
+      }
+
+      // ── Trace family web from a specific person — bidirectional ──
       async function traceFromPerson(startName) {
         lineageLayer.removeAll();
+        labelsLayer.removeAll();
+
+        // Query all graves
         const gravesResult = await gravesLayer.queryFeatures({
           where: "1=1", outFields: ["person_id"], returnGeometry: true
         });
@@ -976,60 +1016,109 @@
         });
         console.log("Graves by name keys:", Object.keys(gravesByName));
 
+        // Query all persons
         const personsResult = await personsTable.queryFeatures({
           where: "1=1", outFields: ["Name", "Father", "Mother"], returnGeometry: false
         });
         const personsByName = {};
+        // Also build a children lookup: parentName → [childNames]
+        const childrenByParent = {};
         personsResult.features.forEach(f => {
           const name = (f.attributes.Name || "").trim().toLowerCase();
-          if (name) personsByName[name] = {
-            father: (f.attributes.Father || "").trim().toLowerCase(),
-            mother: (f.attributes.Mother || "").trim().toLowerCase()
-          };
+          const father = (f.attributes.Father || "").trim().toLowerCase();
+          const mother = (f.attributes.Mother || "").trim().toLowerCase();
+          if (name) {
+            personsByName[name] = { father, mother };
+            if (father) {
+              if (!childrenByParent[father]) childrenByParent[father] = [];
+              childrenByParent[father].push(name);
+            }
+            if (mother) {
+              if (!childrenByParent[mother]) childrenByParent[mother] = [];
+              childrenByParent[mother].push(name);
+            }
+          }
         });
         console.log("Persons by name keys:", Object.keys(personsByName));
         console.log("Starting trace from:", startName.trim().toLowerCase());
         console.log("Person record found:", personsByName[startName.trim().toLowerCase()]);
+
         const involvedPoints = [];
         let lineCount = 0;
-        const visited = new Set();
+        const visitedAncestors = new Set();
+        const visitedDescendants = new Set();
+        const labeledNames = new Set();
+        const startKey = startName.trim().toLowerCase();
 
-        function traceGeneration(name, generation) {
-          if (generation > 4 || visited.has(name) || !name) return;
-          visited.add(name);
+        // Label the starting person
+        if (gravesByName[startKey]) addLabel(startKey, gravesByName[startKey], labeledNames);
+
+        // ── Trace ancestors (upward — red lines) ──
+        function traceAncestors(name, generation) {
+          if (generation > 4 || visitedAncestors.has(name) || !name) return;
+          visitedAncestors.add(name);
           const childPoint = gravesByName[name];
           const person = personsByName[name];
           if (!person) return;
-          const color = generationColors[generation - 1] || generationColors[3];
+          const color = ancestorColors[generation - 1] || ancestorColors[3];
           const lineSymbol = { type: "simple-line", color, width: Math.max(1, 3 - generation * 0.5), style: "solid" };
 
           if (person.father && gravesByName[person.father] && childPoint) {
-            const fatherPoint = gravesByName[person.father];
+            const parentPoint = gravesByName[person.father];
             lineageLayer.add(new Graphic({
-              geometry: { type: "polyline", paths: [[[childPoint.longitude, childPoint.latitude],[fatherPoint.longitude, fatherPoint.latitude]]]},
+              geometry: { type: "polyline", paths: [[[childPoint.longitude, childPoint.latitude],[parentPoint.longitude, parentPoint.latitude]]]},
               symbol: lineSymbol,
-              attributes: { relationship: `Gen ${generation}: ${name} → ${person.father} (father)` },
-              popupTemplate: { title: "Family Connection", content: `{relationship}` }
+              attributes: { relationship: `Gen ${generation} ancestor: ${name} ← ${person.father} (father)` },
+              popupTemplate: { title: "Ancestor Connection", content: `{relationship}` }
             }));
-            involvedPoints.push(childPoint, fatherPoint);
+            involvedPoints.push(childPoint, parentPoint);
+            addLabel(person.father, parentPoint, labeledNames);
             lineCount++;
-            traceGeneration(person.father, generation + 1);
+            traceAncestors(person.father, generation + 1);
           }
           if (person.mother && gravesByName[person.mother] && childPoint) {
-            const motherPoint = gravesByName[person.mother];
+            const parentPoint = gravesByName[person.mother];
             lineageLayer.add(new Graphic({
-              geometry: { type: "polyline", paths: [[[childPoint.longitude, childPoint.latitude],[motherPoint.longitude, motherPoint.latitude]]]},
-              symbol: { ...lineSymbol, color: [color[1], color[0], color[2], color[3]] },
-              attributes: { relationship: `Gen ${generation}: ${name} → ${person.mother} (mother)` },
-              popupTemplate: { title: "Family Connection", content: `{relationship}` }
+              geometry: { type: "polyline", paths: [[[childPoint.longitude, childPoint.latitude],[parentPoint.longitude, parentPoint.latitude]]]},
+              symbol: lineSymbol,
+              attributes: { relationship: `Gen ${generation} ancestor: ${name} ← ${person.mother} (mother)` },
+              popupTemplate: { title: "Ancestor Connection", content: `{relationship}` }
             }));
-            involvedPoints.push(childPoint, motherPoint);
+            involvedPoints.push(childPoint, parentPoint);
+            addLabel(person.mother, parentPoint, labeledNames);
             lineCount++;
-            traceGeneration(person.mother, generation + 1);
+            traceAncestors(person.mother, generation + 1);
           }
         }
 
-        traceGeneration(startName.trim().toLowerCase(), 1);
+        // ── Trace descendants (downward — blue lines) ──
+        function traceDescendants(name, generation) {
+          if (generation > 4 || visitedDescendants.has(name) || !name) return;
+          visitedDescendants.add(name);
+          const parentPoint = gravesByName[name];
+          if (!parentPoint) return;
+          const children = childrenByParent[name] || [];
+          const color = descendantColors[generation - 1] || descendantColors[3];
+          const lineSymbol = { type: "simple-line", color, width: Math.max(1, 3 - generation * 0.5), style: "solid" };
+
+          children.forEach(childName => {
+            const childPoint = gravesByName[childName];
+            if (!childPoint) return;
+            lineageLayer.add(new Graphic({
+              geometry: { type: "polyline", paths: [[[parentPoint.longitude, parentPoint.latitude],[childPoint.longitude, childPoint.latitude]]]},
+              symbol: lineSymbol,
+              attributes: { relationship: `Gen ${generation} descendant: ${name} → ${childName} (child)` },
+              popupTemplate: { title: "Descendant Connection", content: `{relationship}` }
+            }));
+            involvedPoints.push(parentPoint, childPoint);
+            addLabel(childName, childPoint, labeledNames);
+            lineCount++;
+            traceDescendants(childName, generation + 1);
+          });
+        }
+
+        traceAncestors(startKey, 1);
+        traceDescendants(startKey, 1);
 
         let extent = null;
         if (involvedPoints.length > 0) {
@@ -1195,3 +1284,4 @@
     </script>
   </body>
 </html>
+
