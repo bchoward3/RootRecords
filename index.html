@@ -397,14 +397,14 @@
       // ── Cluster configuration ──
       const clusterConfig = {
         type: "cluster",
-        clusterRadius: "60px",
+        clusterRadius: "8px",
         popupTemplate: {
-          title: "Cluster of {cluster_count} sites",
+          title: "Cluster of {cluster_count} nearby graves",
           content: "Zoom in to see individual records.",
           fieldInfos: [{ fieldName: "cluster_count", label: "Total sites" }]
         },
         clusterMinSize: "24px",
-        clusterMaxSize: "42px",
+        clusterMaxSize: "36px",
         labelingInfo: [{
           deconflictionStrategy: "none",
           labelExpressionInfo: { expression: "Text($feature.cluster_count, '#,###')" },
@@ -998,4 +998,3 @@
     </script>
   </body>
 </html>
-
