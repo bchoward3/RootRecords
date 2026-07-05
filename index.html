@@ -245,6 +245,18 @@
     <!-- Lineage web toggle (show all) -->
     <button id="lineageToggle">⬡ Show All Family Web</button>
 
+    <!-- Info card for Show All Family Web -->
+    <div id="lineageInfo" style="
+      background:white; border-radius:4px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.2);
+      padding:10px 12px; font-family:'Georgia',serif;
+      font-size:11px; color:#555; line-height:1.6;
+      max-width:200px;
+    ">
+      <strong style="display:block; color:#1a1a2e; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px;">💡 Show All Family Web</strong>
+      Draws connection lines between all graves with known parent–child relationships — no filter required. Use <em>Filter by Person</em> to trace a specific individual's lineage.
+    </div>
+
     <!-- Map click instruction banner -->
     <div id="clickBanner">Click the map to place the site location</div>
 
@@ -336,6 +348,8 @@
     </div>
 
     <script type="module">
+      // I am using the ArcGIS Maps SDK for JavaScript (v5.1) ES module syntax.
+      // This is the modern import pattern replacing the older AMD require() approach.
       import Map from "https://js.arcgis.com/5.1/@arcgis/core/Map.js";
       import MapView from "https://js.arcgis.com/5.1/@arcgis/core/views/MapView.js";
       import FeatureLayer from "https://js.arcgis.com/5.1/@arcgis/core/layers/FeatureLayer.js";
@@ -350,16 +364,27 @@
       import BasemapGallery from "https://js.arcgis.com/5.1/@arcgis/core/widgets/BasemapGallery.js";
       import { on } from "https://js.arcgis.com/5.1/@arcgis/core/core/reactiveUtils.js";
 
+      // This is the base URL for my RootRecords hosted feature service on ArcGIS Online.
+      // All three feature classes (Birthplace/0, House/1, Graves/2) and the
+      // Persons table (index 3) live under this single service endpoint,
+      // which I published from a file geodatabase in ArcGIS Pro with
+      // relationship classes already defined between the layers.
       const SERVICE_URL = "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/RootRecords/FeatureServer";
       const PERSONS_URL = `${SERVICE_URL}/3`;
 
-      // ── Popup actions ──
+      // I added Edit and Delete actions to every popup so that a user can
+      // correct mistakes or remove test records without leaving the map view.
+      // The edit action opens the Editor widget pre-loaded with that feature,
+      // and the delete action shows a confirmation dialog before removing the record.
       const popupActions = [
         { title: "Edit record", id: "edit-record", className: "esri-icon-edit" },
         { title: "Delete record", id: "delete-record", className: "esri-icon-trash" }
       ];
 
-      // ── Popup templates ──
+      // Each feature class has its own popup template showing only the fields
+      // relevant to that site type. I deliberately excluded system fields like
+      // GlobalID and person_globalid since those are internal linking keys
+      // that don't mean anything to the end user.
       const gravePopup = {
         title: "⚰ {person_id}", actions: popupActions,
         content: [{ type: "fields", fieldInfos: [
@@ -398,7 +423,11 @@
         ]}]
       };
 
-      // ── Renderers ──
+      // I chose distinct symbols for each site type so that at a glance a user
+      // can tell what kind of record they're looking at without clicking:
+      // squares for graves, circles for birthplaces, diamonds for houses.
+      // The color palette (navy, brown, olive) is muted and period-appropriate
+      // for a genealogy application rather than bright primary colors.
       const graveRenderer = { type: "simple", symbol: {
         type: "simple-marker", style: "square", color: [26,26,46,220], size: "10px",
         outline: { color: [232,213,176], width: 1.5 }
@@ -412,7 +441,11 @@
         outline: { color: [255,255,255], width: 1.5 }
       }};
 
-      // ── Cluster configuration ──
+      // I added clustering so that graves in the same cemetery don't overlap
+      // and become unclickable. The cluster radius is intentionally tight (8px)
+      // so that only features within roughly 500 feet of each other will group —
+      // in practice this means graves in the same cemetery plot will cluster
+      // while records in different locations remain separate.
       const clusterConfig = {
         type: "cluster",
         clusterRadius: "8px",
@@ -434,7 +467,12 @@
         }]
       };
 
-      // ── Feature Layers ──
+      // Each feature layer points to a specific index within my RootRecords
+      // feature service. The formTemplate controls which fields appear in the
+      // built-in Editor widget, hiding system fields like GlobalID and
+      // person_globalid that are only used for internal record linking.
+      // editingEnabled: true allows the Editor widget to create, update,
+      // and delete records directly from the web app.
       const gravesLayer = new FeatureLayer({
         url: `${SERVICE_URL}/2`, title: "Graves", outFields: ["*"],
         popupTemplate: gravePopup, renderer: graveRenderer, editingEnabled: true,
@@ -484,12 +522,18 @@
         ]}
       });
 
-      // Persons table (non-spatial, no renderer needed)
+      // The Persons table is non-spatial (no geometry) — it stores biographical
+      // data about individuals and links to the spatial site records via GlobalID.
+      // I keep it as a separate table rather than duplicating person fields on
+      // every site record so that if I correct someone's birth year, the fix
+      // only needs to happen in one place.
       const personsTable = new FeatureLayer({
         url: PERSONS_URL, title: "Persons", outFields: ["*"]
       });
 
-      // ── Map & View ──
+      // I centered the initial view on Kentucky since that is where I intend
+      // to conduct my genealogy fieldwork in September. Zoom level 7 shows
+      // the full state, giving context before drilling into specific counties.
       const map = new Map({
         basemap: "topo-vector",
         layers: [gravesLayer, birthplaceLayer, houseLayer]
@@ -499,7 +543,14 @@
         popup: { dockEnabled: true, dockOptions: { position: "bottom-right", breakpoint: false } }
       });
 
-      // ── Standard Widgets ──
+      // I added standard Esri navigation widgets (Home, Locate, Search) to give
+      // users familiar map controls. The Search widget allows address lookup,
+      // which is useful when trying to navigate to a specific cemetery or town.
+      // The Editor widget is wrapped in an Expand so it doesn't take up
+      // permanent screen space — users open it when they need to edit records.
+      // The Basemap Gallery lets the user switch between topographic and
+      // light gray canvas basemaps depending on whether they want terrain
+      // context or a cleaner background for reading family web lines.
       view.ui.add(new Home({ view }), "top-left");
       view.ui.add(new Locate({ view }), "top-left");
       view.ui.add(new Expand({ view, content: new Search({ view }), expandIcon: "search", group: "top-right" }), "top-right");
@@ -512,12 +563,21 @@
       view.ui.add(document.getElementById("layerToggle"), "bottom-left");
       view.ui.add(document.getElementById("addSiteTrigger"), "top-left");
 
-      // ── Layer toggles ──
+      // I added layer visibility toggles so a user can isolate one site type
+      // at a time — for example, showing only graves when working in a cemetery,
+      // or only birthplaces when researching migration patterns.
       document.getElementById("toggleGraves").addEventListener("change", e => gravesLayer.visible = e.target.checked);
       document.getElementById("toggleBirthplaces").addEventListener("change", e => birthplaceLayer.visible = e.target.checked);
       document.getElementById("toggleHouses").addEventListener("change", e => houseLayer.visible = e.target.checked);
 
-      // ── Person filter & browse ──
+      // The Filter by Person panel serves two purposes:
+      // 1. It hides all records except those belonging to the typed individual,
+      //    making it easy to see all the sites associated with one person.
+      // 2. It exposes the "Trace Family Web" button which draws bidirectional
+      //    lineage lines from that person outward through ancestors and descendants.
+      // I also added a Browse button so users can scroll all existing person
+      // records alphabetically — useful when you can't remember the exact spelling
+      // of a name, or want to explore what's already been recorded.
       let currentFilterName = null;
 
       function applyFilter(name) {
@@ -610,7 +670,12 @@
         }
       });
 
-      // ── Popup action handlers ──
+      // The popup trigger-action handler responds to the Edit and Delete buttons
+      // I added to each feature's popup. In SDK 5.1 the event syntax changed from
+      // view.popup.on() to the reactiveUtils on() function — I learned this the
+      // hard way after debugging a "is not a function" error. The delete handler
+      // uses applyEdits with the feature's OBJECTID rather than passing the whole
+      // feature object, which is more reliable in this SDK version.
       on(() => view.popup, "trigger-action", async (event) => {
         const feature = view.popup.selectedFeature;
         if (!feature) return;
@@ -633,8 +698,20 @@
         }
       });
 
-      // ════════════════════════════════════════════
-      // ── CUSTOM ADD SITE WORKFLOW ──
+      // I built this custom three-step panel because the built-in Editor widget
+      // cannot simultaneously write to two different tables in one action.
+      // My goal was that when a user captures a site (grave, birthplace, or house),
+      // the app also creates or links a corresponding Persons record in the same
+      // submission — so the spatial and biographical data stay in sync from the
+      // moment of capture rather than needing to be linked manually afterward.
+      //
+      // Step 1: User selects site type (Grave / Birthplace / House)
+      // Step 2: User clicks the map to place the GPS point
+      // Step 3: User fills in site details and either creates a new Person record
+      //         or searches for and links an existing one
+      //
+      // On submit, the code writes both records simultaneously using applyEdits
+      // and links them via the person_globalid foreign key field.
       // ════════════════════════════════════════════
       let currentSiteType = null;   // "grave" | "birthplace" | "house"
       let placedPoint = null;        // esri Point geometry
@@ -957,15 +1034,25 @@
         }
       });
 
-      // ── Lineage graphics layer ──
+      // I use two separate GraphicsLayers for the family web feature:
+      // lineageLayer holds the line graphics connecting graves,
+      // and labelsLayer holds the text label for each person's name.
+      // Keeping them separate means I can clear lines and labels independently
+      // if needed. Both are hidden from the layer list (listMode: "hide")
+      // since they're generated dynamically rather than being persistent data layers.
       const lineageLayer = new GraphicsLayer({ title: "Family Web", listMode: "hide" });
       const labelsLayer = new GraphicsLayer({ title: "Family Labels", listMode: "hide" });
       map.add(lineageLayer);
       map.add(labelsLayer);
       view.ui.add(document.getElementById("lineageToggle"), "top-left");
+      view.ui.add(document.getElementById("lineageInfo"), "top-left");
       let lineageVisible = false;
 
-      // ── Generation colors — ancestors (red) and descendants (blue) ──
+      // Ancestor lines are red tones (getting lighter with each generation back)
+      // and descendant lines are blue tones (getting lighter with each generation forward).
+      // This color split gives an immediate visual sense of direction —
+      // red lines lead into the past, blue lines lead toward the present.
+      // Line width also decreases slightly with each generation to reinforce distance.
       const ancestorColors = [
         [100, 0, 0, 230],
         [160, 40, 40, 200],
@@ -1000,7 +1087,21 @@
         }));
       }
 
-      // ── Trace family web from a specific person — bidirectional ──
+      // traceFromPerson is the core function of the family web feature.
+      // It works in two directions simultaneously from a selected individual:
+      //
+      // ANCESTORS (upward): follows Father and Mother fields on each Persons record,
+      // matching those text names against person_id on the Graves layer to find
+      // the parent's burial location, then recurses upward up to 4 generations.
+      //
+      // DESCENDANTS (downward): builds a childrenByParent lookup from the Persons table
+      // (checking who has this person listed as their Father or Mother), then follows
+      // those links downward up to 4 generations.
+      //
+      // Name matching is case-insensitive but requires consistent spelling —
+      // "John Smith" in a Father field must exactly match "John Smith" in person_id.
+      // This is a known limitation of using text fields rather than foreign key IDs,
+      // but works well for a personal family dataset where I control data entry.
       async function traceFromPerson(startName) {
         lineageLayer.removeAll();
         labelsLayer.removeAll();
@@ -1175,7 +1276,14 @@
         btn.disabled = false;
       });
 
-      async function buildLineageWeb() {
+      // buildLineageWeb draws lines for ALL parent-child grave relationships
+      // in the dataset simultaneously, without filtering to a specific person.
+      // This is useful for getting a high-level overview of how the whole
+      // family is geographically distributed — showing migration patterns
+      // across generations at a glance. It uses the same red line style as
+      // the ancestor trace but doesn't color by generation since there is
+      // no single starting point to measure distance from - I'm thinking of 
+      // better ways to do this in the future for mother/father tracing.
         lineageLayer.removeAll();
 
         const gravesResult = await gravesLayer.queryFeatures({
