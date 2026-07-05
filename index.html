@@ -177,7 +177,16 @@
       .status-msg.error { background: #f0e8e8; color: #5a2d2d; display: block; }
       .status-msg.info { background: #e8eaf0; color: #2d2d5a; display: block; }
 
-      /* Add Site trigger button (in UI) */
+      /* Lineage toggle button */
+      #lineageToggle {
+        background: white; padding: 10px 14px; border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer;
+        font-family: 'Georgia', serif; font-size: 12px; color: #1a1a2e;
+        border: 2px solid transparent; display: flex; align-items: center; gap: 6px;
+        letter-spacing: 0.5px; transition: all 0.2s;
+      }
+      #lineageToggle:hover { background: #f5f5f5; }
+      #lineageToggle.active { border-color: #8b1a1a; color: #8b1a1a; background: #fff5f5; }
       #addSiteTrigger {
         background: white; padding: 10px 14px; border-radius: 4px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer;
@@ -214,6 +223,9 @@
 
     <!-- Add Site trigger button -->
     <button id="addSiteTrigger">＋ Add Site</button>
+
+    <!-- Lineage web toggle -->
+    <button id="lineageToggle">⬡ Show Family Web</button>
 
     <!-- Map click instruction banner -->
     <div id="clickBanner">Click the map to place the site location</div>
@@ -310,6 +322,7 @@
       import MapView from "https://js.arcgis.com/5.1/@arcgis/core/views/MapView.js";
       import FeatureLayer from "https://js.arcgis.com/5.1/@arcgis/core/layers/FeatureLayer.js";
       import Graphic from "https://js.arcgis.com/5.1/@arcgis/core/Graphic.js";
+      import GraphicsLayer from "https://js.arcgis.com/5.1/@arcgis/core/layers/GraphicsLayer.js";
       import Locate from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Locate.js";
       import Home from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Home.js";
       import Search from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Search.js";
@@ -811,6 +824,117 @@
           setStatus("Save failed — check console for details.", "error");
           submitBtn.disabled = false;
           submitBtn.textContent = "Save Record";
+        }
+      });
+
+      // ── Lineage graphics layer ──
+      const lineageLayer = new GraphicsLayer({ title: "Family Web", listMode: "hide" });
+      map.add(lineageLayer);
+
+      // Add lineage toggle button to UI
+      view.ui.add(document.getElementById("lineageToggle"), "top-left");
+
+      let lineageVisible = false;
+
+      async function buildLineageWeb() {
+        lineageLayer.removeAll();
+
+        // 1. Query all Graves with geometry and person name
+        const gravesResult = await gravesLayer.queryFeatures({
+          where: "1=1",
+          outFields: ["person_id", "OBJECTID"],
+          returnGeometry: true
+        });
+
+        if (gravesResult.features.length === 0) return;
+
+        // Build a lookup: name (lowercase) → point geometry
+        const gravesByName = {};
+        gravesResult.features.forEach(f => {
+          const name = (f.attributes.person_id || "").trim().toLowerCase();
+          if (name) gravesByName[name] = f.geometry;
+        });
+
+        // 2. Query Persons table for father/mother relationships
+        const personsResult = await personsTable.queryFeatures({
+          where: "1=1",
+          outFields: ["Name", "Father", "Mother"],
+          returnGeometry: false
+        });
+
+        // 3. For each person, try to match father and mother to graves
+        const lineSymbol = {
+          type: "simple-line",
+          color: [139, 26, 26, 180],
+          width: 1.5,
+          style: "solid"
+        };
+
+        let lineCount = 0;
+        personsResult.features.forEach(f => {
+          const attrs = f.attributes;
+          const childName = (attrs.Name || "").trim().toLowerCase();
+          const fatherName = (attrs.Father || "").trim().toLowerCase();
+          const motherName = (attrs.Mother || "").trim().toLowerCase();
+
+          const childPoint = gravesByName[childName];
+
+          // Draw line to father's grave
+          if (childPoint && fatherName && gravesByName[fatherName]) {
+            lineageLayer.add(new Graphic({
+              geometry: { type: "polyline", paths: [[
+                [childPoint.longitude, childPoint.latitude],
+                [gravesByName[fatherName].longitude, gravesByName[fatherName].latitude]
+              ]]},
+              symbol: lineSymbol,
+              attributes: { relationship: `${attrs.Name} → ${attrs.Father}` },
+              popupTemplate: { title: "Family Connection", content: `{relationship}` }
+            }));
+            lineCount++;
+          }
+
+          // Draw line to mother's grave
+          if (childPoint && motherName && gravesByName[motherName]) {
+            lineageLayer.add(new Graphic({
+              geometry: { type: "polyline", paths: [[
+                [childPoint.longitude, childPoint.latitude],
+                [gravesByName[motherName].longitude, gravesByName[motherName].latitude]
+              ]]},
+              symbol: { ...lineSymbol, color: [26, 26, 139, 180] },
+              attributes: { relationship: `${attrs.Name} → ${attrs.Mother}` },
+              popupTemplate: { title: "Family Connection", content: `{relationship}` }
+            }));
+            lineCount++;
+          }
+        });
+
+        return lineCount;
+      }
+
+      document.getElementById("lineageToggle").addEventListener("click", async () => {
+        const btn = document.getElementById("lineageToggle");
+        if (lineageVisible) {
+          lineageLayer.removeAll();
+          lineageLayer.visible = false;
+          lineageVisible = false;
+          btn.textContent = "⬡ Show Family Web";
+          btn.classList.remove("active");
+        } else {
+          btn.textContent = "⬡ Building...";
+          btn.disabled = true;
+          try {
+            const count = await buildLineageWeb();
+            lineageLayer.visible = true;
+            lineageVisible = true;
+            btn.classList.add("active");
+            btn.textContent = count > 0
+              ? `⬡ Hide Family Web (${count} links)`
+              : "⬡ Hide Family Web (no links yet)";
+          } catch (err) {
+            console.error("Lineage build failed:", err);
+            btn.textContent = "⬡ Show Family Web";
+          }
+          btn.disabled = false;
         }
       });
 
