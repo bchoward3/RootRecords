@@ -974,6 +974,8 @@
           const name = (f.attributes.person_id || "").trim().toLowerCase();
           if (name) gravesByName[name] = f.geometry;
         });
+        console.log("Graves by name keys:", Object.keys(gravesByName));
+
         const personsResult = await personsTable.queryFeatures({
           where: "1=1", outFields: ["Name", "Father", "Mother"], returnGeometry: false
         });
@@ -985,6 +987,9 @@
             mother: (f.attributes.Mother || "").trim().toLowerCase()
           };
         });
+        console.log("Persons by name keys:", Object.keys(personsByName));
+        console.log("Starting trace from:", startName.trim().toLowerCase());
+        console.log("Person record found:", personsByName[startName.trim().toLowerCase()]);
         const involvedPoints = [];
         let lineCount = 0;
         const visited = new Set();
