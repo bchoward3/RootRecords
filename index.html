@@ -394,10 +394,33 @@
         outline: { color: [255,255,255], width: 1.5 }
       }};
 
+      // ── Cluster configuration ──
+      const clusterConfig = {
+        type: "cluster",
+        clusterRadius: "60px",
+        popupTemplate: {
+          title: "Cluster of {cluster_count} sites",
+          content: "Zoom in to see individual records.",
+          fieldInfos: [{ fieldName: "cluster_count", label: "Total sites" }]
+        },
+        clusterMinSize: "24px",
+        clusterMaxSize: "42px",
+        labelingInfo: [{
+          deconflictionStrategy: "none",
+          labelExpressionInfo: { expression: "Text($feature.cluster_count, '#,###')" },
+          symbol: {
+            type: "text", color: "#ffffff",
+            font: { weight: "bold", family: "Georgia", size: "11px" }
+          },
+          labelPlacement: "center-center"
+        }]
+      };
+
       // ── Feature Layers ──
       const gravesLayer = new FeatureLayer({
         url: `${SERVICE_URL}/2`, title: "Graves", outFields: ["*"],
         popupTemplate: gravePopup, renderer: graveRenderer, editingEnabled: true,
+        featureReduction: clusterConfig,
         formTemplate: { elements: [
           { type: "field", fieldName: "person_id", label: "Person Name *" },
           { type: "field", fieldName: "DOB", label: "Date of Birth" },
@@ -415,6 +438,7 @@
       const birthplaceLayer = new FeatureLayer({
         url: `${SERVICE_URL}/0`, title: "Birthplaces", outFields: ["*"],
         popupTemplate: birthplacePopup, renderer: birthplaceRenderer, editingEnabled: true,
+        featureReduction: clusterConfig,
         formTemplate: { elements: [
           { type: "field", fieldName: "person_id", label: "Person Name *" },
           { type: "field", fieldName: "DOB", label: "Date of Birth" },
@@ -429,6 +453,7 @@
       const houseLayer = new FeatureLayer({
         url: `${SERVICE_URL}/1`, title: "Houses & Sites", outFields: ["*"],
         popupTemplate: housePopup, renderer: houseRenderer, editingEnabled: true,
+        featureReduction: clusterConfig,
         formTemplate: { elements: [
           { type: "field", fieldName: "person_id", label: "Person Name *" },
           { type: "field", fieldName: "Father", label: "Father" },
@@ -939,6 +964,18 @@
             btn.textContent = count > 0
               ? `⬡ Hide Family Web (${count} links)`
               : "⬡ Hide Family Web (no links yet)";
+
+            // Zoom to extent of all lineage graphics
+            if (count > 0 && lineageLayer.graphics.length > 0) {
+              try {
+                await view.goTo(lineageLayer.graphics.toArray(), {
+                  duration: 1000,
+                  easing: "ease-in-out"
+                });
+              } catch (zoomErr) {
+                console.warn("Zoom to extent failed:", zoomErr);
+              }
+            }
           } catch (err) {
             console.error("Lineage build failed:", err);
             btn.textContent = "⬡ Show Family Web";
