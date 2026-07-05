@@ -1,129 +1,459 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <!--meta for the browser to allow for mobile first design-->
-        <meta charset="utf-8" />
-        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <title>RootRecords</title>
-        <style>
-            html,
-            body,
-            #viewDiv {
-                padding: 0;
-                margin: 0;
-                height: 100%;
-                width: 100%;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>RootRecords</title>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
+
+    <style>
+      html, body, #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        font-family: 'Georgia', serif;
+      }
+      #header {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 48px;
+        background: #1a1a2e;
+        color: #e8d5b0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        z-index: 100;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      }
+      #header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 400;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #e8d5b0;
+        font-family: 'Georgia', serif;
+      }
+      #header span {
+        font-size: 11px;
+        color: #9a8c72;
+        letter-spacing: 1px;
+      }
+      #viewDiv {
+        position: absolute;
+        top: 48px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+      }
+      #layerToggle {
+        background: white;
+        padding: 12px 16px;
+        border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        font-size: 13px;
+        line-height: 1.8;
+        font-family: 'Georgia', serif;
+      }
+      #layerToggle b {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #666;
+        margin-bottom: 6px;
+        font-family: 'Georgia', serif;
+      }
+      #layerToggle label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #333;
+      }
+      #layerToggle input[type="checkbox"] { cursor: pointer; }
+      #searchPanel {
+        background: white;
+        padding: 12px 16px;
+        border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        width: 260px;
+        font-family: 'Georgia', serif;
+      }
+      #searchPanel b {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #666;
+        margin-bottom: 8px;
+      }
+      #personSearch {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 13px;
+        box-sizing: border-box;
+        font-family: 'Georgia', serif;
+      }
+      #searchBtn {
+        margin-top: 8px;
+        width: 100%;
+        padding: 7px;
+        background: #1a1a2e;
+        color: #e8d5b0;
+        border: none;
+        border-radius: 3px;
+        font-size: 13px;
+        cursor: pointer;
+        font-family: 'Georgia', serif;
+        letter-spacing: 1px;
+      }
+      #searchBtn:hover { background: #2d2d4e; }
+      #clearBtn {
+        margin-top: 4px;
+        width: 100%;
+        padding: 6px;
+        background: transparent;
+        color: #666;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: 'Georgia', serif;
+      }
+      #clearBtn:hover { background: #f5f5f5; }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <h1>RootRecords</h1>
+      <span>Genealogy Field Mapping</span>
+    </div>
+
+    <div id="viewDiv"></div>
+
+    <div id="layerToggle">
+      <b>Layers</b>
+      <label><input type="checkbox" id="toggleGraves" checked /> Graves</label>
+      <label><input type="checkbox" id="toggleBirthplaces" checked /> Birthplaces</label>
+      <label><input type="checkbox" id="toggleHouses" checked /> Houses &amp; Sites</label>
+    </div>
+
+    <div id="searchPanel">
+      <b>Filter by Person</b>
+      <input type="text" id="personSearch" placeholder="Enter name..." />
+      <button id="searchBtn">Search</button>
+      <button id="clearBtn">Clear filter</button>
+    </div>
+
+    <script type="module">
+      import Map from "https://js.arcgis.com/5.1/@arcgis/core/Map.js";
+      import MapView from "https://js.arcgis.com/5.1/@arcgis/core/views/MapView.js";
+      import FeatureLayer from "https://js.arcgis.com/5.1/@arcgis/core/layers/FeatureLayer.js";
+      import Locate from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Locate.js";
+      import Home from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Home.js";
+      import Search from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Search.js";
+      import Expand from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Expand.js";
+      import Legend from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Legend.js";
+      import Editor from "https://js.arcgis.com/5.1/@arcgis/core/widgets/Editor.js";
+      import BasemapGallery from "https://js.arcgis.com/5.1/@arcgis/core/widgets/BasemapGallery.js";
+      import { on } from "https://js.arcgis.com/5.1/@arcgis/core/core/reactiveUtils.js";
+
+      const SERVICE_URL = "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/RootRecords/FeatureServer";
+
+      // ── Popup action buttons (edit + delete) ──
+      const popupActions = [
+        { title: "Edit record", id: "edit-record", className: "esri-icon-edit" },
+        { title: "Delete record", id: "delete-record", className: "esri-icon-trash" }
+      ];
+
+      // ── Popup templates ──
+      const gravePopup = {
+        title: "⚰ {person_id}",
+        actions: popupActions,
+        content: [{ type: "fields", fieldInfos: [
+          { fieldName: "DOB",          label: "Date of Birth" },
+          { fieldName: "DOD",          label: "Date of Death" },
+          { fieldName: "Father",       label: "Father" },
+          { fieldName: "Mother",       label: "Mother" },
+          { fieldName: "CemeteryName", label: "Cemetery" },
+          { fieldName: "County",       label: "County" },
+          { fieldName: "State",        label: "State" },
+          { fieldName: "Description",  label: "Notes" }
+        ]}]
+      };
+
+      const birthplacePopup = {
+        title: "🏠 {person_id}",
+        actions: popupActions,
+        content: [{ type: "fields", fieldInfos: [
+          { fieldName: "DOB",         label: "Date of Birth" },
+          { fieldName: "Father",      label: "Father" },
+          { fieldName: "Mother",      label: "Mother" },
+          { fieldName: "City",        label: "City" },
+          { fieldName: "County",      label: "County" },
+          { fieldName: "State",       label: "State" },
+          { fieldName: "Description", label: "Notes" }
+        ]}]
+      };
+
+      const housePopup = {
+        title: "🏡 {person_id}",
+        actions: popupActions,
+        content: [{ type: "fields", fieldInfos: [
+          { fieldName: "Father",      label: "Father" },
+          { fieldName: "Mother",      label: "Mother" },
+          { fieldName: "City",        label: "City" },
+          { fieldName: "County",      label: "County" },
+          { fieldName: "State",       label: "State" },
+          { fieldName: "Address",     label: "Address" },
+          { fieldName: "Description", label: "Notes" }
+        ]}]
+      };
+
+      // ── Renderers ──
+      const graveRenderer = {
+        type: "simple",
+        symbol: { type: "simple-marker", style: "square",
+          color: [26, 26, 46, 220], size: "10px",
+          outline: { color: [232, 213, 176], width: 1.5 }
+        }
+      };
+      const birthplaceRenderer = {
+        type: "simple",
+        symbol: { type: "simple-marker", style: "circle",
+          color: [139, 69, 19, 220], size: "10px",
+          outline: { color: [255, 255, 255], width: 1.5 }
+        }
+      };
+      const houseRenderer = {
+        type: "simple",
+        symbol: { type: "simple-marker", style: "diamond",
+          color: [85, 107, 47, 220], size: "12px",
+          outline: { color: [255, 255, 255], width: 1.5 }
+        }
+      };
+
+      // ── Layers ──
+      const gravesLayer = new FeatureLayer({
+        url: `${SERVICE_URL}/2`,
+        title: "Graves",
+        outFields: ["*"],
+        popupTemplate: gravePopup,
+        renderer: graveRenderer,
+        editingEnabled: true,
+        formTemplate: {
+          elements: [
+            { type: "field", fieldName: "person_id",     label: "Person Name *" },
+            { type: "field", fieldName: "DOB",           label: "Date of Birth" },
+            { type: "field", fieldName: "DOD",           label: "Date of Death" },
+            { type: "field", fieldName: "Father",        label: "Father" },
+            { type: "field", fieldName: "Mother",        label: "Mother" },
+            { type: "field", fieldName: "CemeteryName",  label: "Cemetery Name" },
+            { type: "field", fieldName: "Address",       label: "Address" },
+            { type: "field", fieldName: "City",          label: "City" },
+            { type: "field", fieldName: "County",        label: "County" },
+            { type: "field", fieldName: "State",         label: "State" },
+            { type: "field", fieldName: "Description",   label: "Notes / Description" }
+          ]
+        }
+      });
+      const birthplaceLayer = new FeatureLayer({
+        url: `${SERVICE_URL}/0`,
+        title: "Birthplaces",
+        outFields: ["*"],
+        popupTemplate: birthplacePopup,
+        renderer: birthplaceRenderer,
+        editingEnabled: true,
+        formTemplate: {
+          elements: [
+            { type: "field", fieldName: "person_id",   label: "Person Name *" },
+            { type: "field", fieldName: "DOB",         label: "Date of Birth" },
+            { type: "field", fieldName: "Father",      label: "Father" },
+            { type: "field", fieldName: "Mother",      label: "Mother" },
+            { type: "field", fieldName: "City",        label: "City" },
+            { type: "field", fieldName: "County",      label: "County" },
+            { type: "field", fieldName: "State",       label: "State" },
+            { type: "field", fieldName: "Description", label: "Notes / Description" }
+          ]
+        }
+      });
+      const houseLayer = new FeatureLayer({
+        url: `${SERVICE_URL}/1`,
+        title: "Houses & Sites",
+        outFields: ["*"],
+        popupTemplate: housePopup,
+        renderer: houseRenderer,
+        editingEnabled: true,
+        formTemplate: {
+          elements: [
+            { type: "field", fieldName: "person_id",   label: "Person Name *" },
+            { type: "field", fieldName: "Father",      label: "Father" },
+            { type: "field", fieldName: "Mother",      label: "Mother" },
+            { type: "field", fieldName: "Address",     label: "Address" },
+            { type: "field", fieldName: "City",        label: "City" },
+            { type: "field", fieldName: "County",      label: "County" },
+            { type: "field", fieldName: "State",       label: "State" },
+            { type: "field", fieldName: "Description", label: "Notes / Description" }
+          ]
+        }
+      });
+
+      // ── Map & View ──
+      const map = new Map({
+        basemap: "topo-vector",
+        layers: [gravesLayer, birthplaceLayer, houseLayer]
+      });
+
+      const view = new MapView({
+        map,
+        //--For the time being centered on Kentucky where I plan to complete my family history research in September--
+        center: [-85.3, 37.8],
+        zoom: 7,
+        container: "viewDiv",
+        popup: {
+          dockEnabled: true,
+          dockOptions: { position: "bottom-right", breakpoint: false }
+        }
+      });
+
+      // ── Widgets ──
+      view.ui.add(new Home({ view }), "top-left");
+      view.ui.add(new Locate({ view }), "top-left");
+
+      const searchExpand = new Expand({
+        view,
+        content: new Search({ view }),
+        expandIcon: "search",
+        group: "top-right"
+      });
+      view.ui.add(searchExpand, "top-right");
+
+      const legendExpand = new Expand({
+        view,
+        content: new Legend({ view }),
+        expandIcon: "legend",
+        expandTooltip: "Legend",
+        group: "top-right"
+      });
+      view.ui.add(legendExpand, "top-right");
+
+      // ── Editor widget ──
+      const editor = new Editor({ view });
+      const editorExpand = new Expand({
+        view,
+        content: editor,
+        expandIcon: "edit",
+        expandTooltip: "Add / edit records",
+        group: "top-right"
+      });
+      view.ui.add(editorExpand, "top-right");
+
+      const filterExpand = new Expand({
+        view,
+        content: document.getElementById("searchPanel"),
+        expandIcon: "filter",
+        expandTooltip: "Filter by person",
+        group: "top-right"
+      });
+      view.ui.add(filterExpand, "top-right");
+
+      view.ui.add(document.getElementById("layerToggle"), "bottom-left");
+
+      // ── Layer toggles ──
+      document.getElementById("toggleGraves").addEventListener("change", e => {
+        gravesLayer.visible = e.target.checked;
+      });
+      document.getElementById("toggleBirthplaces").addEventListener("change", e => {
+        birthplaceLayer.visible = e.target.checked;
+      });
+      document.getElementById("toggleHouses").addEventListener("change", e => {
+        houseLayer.visible = e.target.checked;
+      });
+
+      // ── Person filter ──
+      document.getElementById("searchBtn").addEventListener("click", () => {
+        const name = document.getElementById("personSearch").value.trim();
+        if (!name) return;
+        const where = `person_id LIKE '%${name}%'`;
+        gravesLayer.definitionExpression = where;
+        birthplaceLayer.definitionExpression = where;
+        houseLayer.definitionExpression = where;
+      });
+
+      document.getElementById("clearBtn").addEventListener("click", () => {
+        document.getElementById("personSearch").value = "";
+        gravesLayer.definitionExpression = "";
+        birthplaceLayer.definitionExpression = "";
+        houseLayer.definitionExpression = "";
+      });
+
+      // ── Basemap Gallery ──
+      const basemapGallery = new BasemapGallery({ view });
+      const basemapExpand = new Expand({
+        view,
+        content: basemapGallery,
+        expandIcon: "basemap",
+        expandTooltip: "Change basemap",
+        group: "top-right"
+      });
+      view.ui.add(basemapExpand, "top-right");
+
+      // ── Popup action handlers ──
+      on(
+        () => view.popup,
+        "trigger-action",
+        async (event) => {
+          const feature = view.popup.selectedFeature;
+          if (!feature) return;
+
+          const layers = [gravesLayer, birthplaceLayer, houseLayer];
+          let targetLayer = null;
+          for (const l of layers) {
+            if (feature.sourceLayer && feature.sourceLayer.url && l.url &&
+                feature.sourceLayer.url.toLowerCase().includes(l.url.toLowerCase().split("/FeatureServer")[0].split("/").pop())) {
+              targetLayer = l;
+              break;
             }
-            h1 {
-                background-color: rgb(255, 255, 255);
-                font-family: 'Times New Roman', Times, serif;
-                font-weight: 300;
-                font-size: 14px;
+          }
+          if (!targetLayer) targetLayer = feature.sourceLayer || feature.layer || gravesLayer;
+
+          if (event.action.id === "edit-record") {
+            editorExpand.expanded = true;
+            view.popup.close();
+          }
+
+          if (event.action.id === "delete-record") {
+            const name = feature.attributes.person_id || "this feature";
+            const confirmed = confirm(
+              `Delete record for "${name}"? This cannot be undone.`
+            );
+            if (!confirmed) return;
+            try {
+              const oid = feature.attributes[targetLayer.objectIdField || "OBJECTID"];
+              await targetLayer.applyEdits({
+                deleteFeatures: [{ objectId: oid }]
+              });
+              view.popup.close();
+            } catch (err) {
+              console.error("Delete failed:", err);
+              alert("Delete failed — check console for details.");
             }
-            body {
-                background-color: rgb(255, 255, 255);
-            }
-            .addRecordBtn {
-                position: "absolute"; 
-                z-index: 10;
-                top: 10px;
-                right: 10px;
-                background-color: #0079c1;
-                color: white;
-                padding: 8px 16px;
-                border: none;
-                border-radius: 4px;
-                font-size: 14px;
-                cursor: pointer;
-                text-decoration: none;
-            }
-            .addRecordBtn {
-                background-color: #005a87;
-            }
-        </style>
-        <!--importing the css and libraries for esri.js-->
-        <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
-        <script src="https://js.arcgis.com/5.1/"></script>
-        <!--loading the modules-->
-        <script>
-            require([ 
-                "esri/config", 
-                "esri/Map", 
-                "esri/views/MapView",
-                "esri/Graphic",
-                "esri/widgets/Locate",
-                "esri/widgets/Expand",
-                "esri/widgets/Search",
-                "esri/layers/FeatureLayer"
-                    
-            ], (esriConfig, Map, MapView, Graphic, Locate, Expand, Search, FeatureLayer) => {
-            
-                //adding API Key
-                //esriConfig.apiKey = "AAPTa1lLOfH-sqzm0Dwzwg9PZFQ..4XKxdWIKfFORXDSLqTmYChblSOEAOLY8UmCya3kvOj24pniJtf_sPVbtdui8UU9zukdlVJmdU56yngoAAA6me5l886UtFGtBGvAG_ndHLrJdrQCKueo0uFY_h2rhLr6s53dTGY9vTbnaYm47YgNec1AWtEjRpXYhyHdtKOysSWyqspZU3fgO1wI7HK_JjM6GBOzyyxMYT4PY4WL0yJXfj5yh3V2aE2nUFgDOdWUHUzFh69mF1q7Nz9DdKLSIugaGcextBX6z3uOyaTyAOUjk1GNWPg8.AT1_VsMN0Wpt";
+          }
+        }
+      );
+      gravesLayer.when(() => console.log("Graves loaded"))
+        .catch(e => console.error("Graves failed:", e));
+      birthplaceLayer.when(() => console.log("Birthplaces loaded"))
+        .catch(e => console.error("Birthplaces failed:", e));
+      houseLayer.when(() => console.log("Houses loaded"))
+        .catch(e => console.error("Houses failed:", e));
 
-                const map = new Map ({
-                    basemap: "topo"
-                });
-
-                const view = new MapView({
-                    map: map,
-                    center: [-81.1329, 32.0043],
-                    zoom: 11,
-                    container: "viewDiv"
-                });
-
-                //Adding locate widget per the documentation along with the graphic marker
-                const locateBtn = new Locate({
-                    view: view
-                });
-
-                //Add the locate widget to the top left corner of the view
-                view.ui.add(locateBtn, {
-                    position: "top-left"
-                });
-
-                //Adding the search widget from Lab 3 but decided to change the position
-                const searchWidget = new Search({
-                    view: view
-                    });
-                // Adds the search widget below other elements in the top left corner of the view
-                // view.ui.add(searchWidget, {
-                    // position: "top-right",
-                //});
-
-                // Constructing the Expand widget for the search bar to conserve screen space
-                const searchExpand = new Expand({
-                    view: view,
-                    content: searchWidget,
-                    expandIcon: "search",
-                    group: "primary"
-                });
-                view.ui.add(searchExpand, "top-right");
-
-                //Adding feature layer
-                const layer = new FeatureLayer({
-                    //URL to Survey123 service
-                    url: "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/survey123_2ffee82682f4477f9459dc646c11c11a_results/FeatureServer"
-                });
-
-                //I added the following AI suggested error catches to see why I was having issues with my Survey123 form. 
-                layer.when(() => { 
-                    console.log("Layer loaded");
-                    console.log("Title:", layer.title);
-                    console.log("Geometry Type:", layer.geometryType);
-                })
-                .catch((error) => {
-                    console.error("Layer failed:", error);
-                });
-                //Adding layer to map
-                map.add(layer);
-        });
-        </script>
-    </head>
-    <body>
-    
-        <h1>Hello - This is GEOG 576 Lab 4 with API key not engaged.</h1>
-        <a href="https://arcg.is/0vyqP50" target="_blank" class="addRecordBtn">Add Record</a>
-        <div id="viewDiv"></div>
-    </body>
+    </script>
+  </body>
 </html>
