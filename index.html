@@ -1146,8 +1146,27 @@
           lineageVisible = true;
           btn.textContent = count > 0 ? `⬡ ${count} links traced` : "⬡ No links found";
           document.getElementById("webLegend").style.display = count > 0 ? "block" : "none";
+
           if (extent && count > 0) {
-            await view.goTo({ target: extent, expansion: 1.4 }, { duration: 1200, easing: "ease-in-out" });
+            // Zoom to full extent of all connected graves
+            await view.goTo({
+              target: extent,
+              expansion: 1.5
+            }, { duration: 1200, easing: "ease-in-out" });
+          } else {
+            // No links — zoom to just the selected person's grave
+            const startKey = currentFilterName.trim().toLowerCase();
+            const gravesResult = await gravesLayer.queryFeatures({
+              where: `person_id LIKE '%${currentFilterName}%'`,
+              outFields: ["person_id"],
+              returnGeometry: true
+            });
+            if (gravesResult.features.length > 0) {
+              await view.goTo({
+                target: gravesResult.features[0].geometry,
+                zoom: 14
+              }, { duration: 1200, easing: "ease-in-out" });
+            }
           }
         } catch (err) {
           console.error("Trace failed:", err);
@@ -1284,4 +1303,3 @@
     </script>
   </body>
 </html>
-
