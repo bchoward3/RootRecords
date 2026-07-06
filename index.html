@@ -612,13 +612,22 @@
       // to navigating the app.
       const searchPanel = document.getElementById("searchPanel");
       searchPanel.style.cssText += `
-        position:fixed; top:158px; right:10px; left:auto; z-index:200;
+        position:fixed; z-index:200;
         width:280px; display:none; border-radius:6px;
         box-shadow:0 2px 12px rgba(0,0,0,0.25);
       `;
       document.getElementById("filterTrigger").addEventListener("click", () => {
         const isVisible = searchPanel.style.display === "block";
-        searchPanel.style.display = isVisible ? "none" : "block";
+        if (isVisible) {
+          searchPanel.style.display = "none";
+        } else {
+          // Position panel directly below the button
+          const btn = document.getElementById("filterTrigger");
+          const rect = btn.getBoundingClientRect();
+          searchPanel.style.top = (rect.bottom + 6) + "px";
+          searchPanel.style.right = (window.innerWidth - rect.right) + "px";
+          searchPanel.style.display = "block";
+        }
       });
 
       // Filter tooltip hover
@@ -1506,4 +1515,3 @@
     </script>
   </body>
 </html>
-
