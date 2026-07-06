@@ -576,7 +576,7 @@
 
       // I centered the initial view on Kentucky since that is where I intend
       // to conduct my genealogy fieldwork in September. Zoom level 7 shows
-      // the full state, giving context before drilling into specific counties.
+      // the full state.
       const map = new Map({
         basemap: "gray-vector",
         layers: [gravesLayer, birthplaceLayer, houseLayer]
@@ -594,6 +594,7 @@
       // The Basemap Gallery lets the user switch between topographic and
       // light gray canvas basemaps depending on whether they want terrain
       // context or a cleaner background for reading family web lines.
+      // I'm concerned that their might be a bit too much clutter at the moment however.
       view.ui.add(new Home({ view }), "top-left");
       view.ui.add(new Locate({ view }), "top-left");
       view.ui.add(new Expand({ view, content: new Search({ view }), expandIcon: "search", group: "top-right" }), "top-right");
@@ -606,7 +607,7 @@
       view.ui.add(document.getElementById("layerToggle"), "bottom-left");
       view.ui.add(document.getElementById("addSiteTrigger"), "top-left");
 
-      // Wire up the Filter by Person text button to show/hide the search panel
+      // Filter by Person text button to show/hide the search panel
       // as a floating panel rather than an Expand widget icon — I made this change
       // because the filter icon was too easy to miss and the feature is central
       // to navigating the app.
@@ -660,7 +661,7 @@
       document.getElementById("toggleBirthplaces").addEventListener("change", e => birthplaceLayer.visible = e.target.checked);
       document.getElementById("toggleHouses").addEventListener("change", e => houseLayer.visible = e.target.checked);
 
-      // The Filter by Person panel serves two purposes:
+      // The Filter by Person panel has two purposes:
       // 1. It hides all records except those belonging to the typed individual,
       //    making it easy to see all the sites associated with one person.
       // 2. It exposes the "Trace Family Web" button which draws bidirectional
@@ -668,6 +669,7 @@
       // I also added a Browse button so users can scroll all existing person
       // records alphabetically — useful when you can't remember the exact spelling
       // of a name, or want to explore what's already been recorded.
+      // This part of the application was completely new territory for me.
       let currentFilterName = null;
 
       function applyFilter(name) {
