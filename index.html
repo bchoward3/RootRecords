@@ -53,7 +53,7 @@
         text-transform: uppercase; color: #666; margin-bottom: 8px;
       }
 
-      /* ── Shared button and input styles ── */
+      /* ── Shared button/input styles ── */
       .rr-input {
         width: 100%; padding: 6px 10px; border: 1px solid #ccc;
         border-radius: 3px; font-size: 13px; box-sizing: border-box;
@@ -78,7 +78,7 @@
       }
       .rr-btn-danger:hover { background: #a02020; }
 
-      /* ── 'Add Site' Panel ── */
+      /* ── Custom Add Site Panel ── */
       #addSitePanel {
         position: absolute; top: 58px; right: 10px;
         width: 320px; background: white; border-radius: 6px;
@@ -213,7 +213,7 @@
       <label><input type="checkbox" id="toggleHouses" checked /> Houses &amp; Sites</label>
     </div>
 
-    <!-- Person filter (this took some trial and error and may be revised in the future) -->
+    <!-- Person filter -->
     <div id="searchPanel">
       <b>Filter by Person</b>
       <input type="text" id="personSearch" class="rr-input" placeholder="Enter name..." />
@@ -303,7 +303,7 @@
     <!-- Map click instruction banner -->
     <div id="clickBanner">Click the map to place the site location</div>
 
-    <!-- ── Custom Add Site Panel (had to get some help for this part) ── -->
+    <!-- ── Custom Add Site Panel ── -->
     <div id="addSitePanel">
       <div class="panel-header">
         <span id="panelTitle">Add New Site</span>
@@ -392,6 +392,7 @@
 
     <script type="module">
       // I am using the ArcGIS Maps SDK for JavaScript (v5.1) ES module syntax.
+      // This is the modern import pattern replacing the older AMD require() approach.
       import Map from "https://js.arcgis.com/5.1/@arcgis/core/Map.js";
       import MapView from "https://js.arcgis.com/5.1/@arcgis/core/views/MapView.js";
       import FeatureLayer from "https://js.arcgis.com/5.1/@arcgis/core/layers/FeatureLayer.js";
@@ -410,9 +411,7 @@
       // All three feature classes (Birthplace/0, House/1, Graves/2) and the
       // Persons table (index 3) live under this single service endpoint,
       // which I published from a file geodatabase in ArcGIS Pro with
-      // relationship classes already defined between the layers. 
-      // I think there might be a more efficient way to establish these relationships
-      // but for now it seems to be working.
+      // relationship classes already defined between the layers.
       const SERVICE_URL = "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/RootRecords/FeatureServer";
       const PERSONS_URL = `${SERVICE_URL}/3`;
 
@@ -880,6 +879,8 @@
         document.getElementById("btnExistingPerson").classList.remove("active");
         document.getElementById("newPersonFields").style.display = "block";
         document.getElementById("existingPersonFields").style.display = "none";
+        document.getElementById("submitRecord").textContent = "Save Record";
+        document.getElementById("submitRecord").disabled = false;
         showStep(1);
       }
 
