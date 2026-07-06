@@ -578,7 +578,7 @@
       // to conduct my genealogy fieldwork in September. Zoom level 7 shows
       // the full state, giving context before drilling into specific counties.
       const map = new Map({
-        basemap: "topo-vector",
+        basemap: "antique",
         layers: [gravesLayer, birthplaceLayer, houseLayer]
       });
       const view = new MapView({
@@ -1146,6 +1146,8 @@
       // This color split gives an immediate visual sense of direction —
       // red lines lead into the past, blue lines lead toward the present.
       // Line width also decreases slightly with each generation to reinforce distance.
+      // I will most likely revisit this in the future as I feel like, in the case of some 
+      // ancestors, the map looks far too cluttered if there are multiple children involved. 
       const ancestorColors = [
         [100, 0, 0, 230],
         [160, 40, 40, 200],
