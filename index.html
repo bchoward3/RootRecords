@@ -693,6 +693,7 @@
         document.getElementById("traceWebBtn").style.display = "none";
         document.getElementById("webLegend").style.display = "none";
         document.getElementById("browseResults").style.display = "none";
+        view.padding = { right: 0 };
         lineageLayer.removeAll();
         lineageLayer.visible = false;
         lineageVisible = false;
@@ -1322,14 +1323,12 @@
           document.getElementById("webLegend").style.display = count > 0 ? "block" : "none";
 
           if (extent && count > 0) {
-            // Zoom to full extent of all connected graves
-            await view.goTo({
-              target: extent,
-              expansion: 1.5
-            }, { duration: 1200, easing: "ease-in-out" });
+            // Zoom to full extent of all connected graves with padding
+            await view.goTo(extent, { duration: 1200, easing: "ease-in-out" });
+            // Add padding so panel doesn't cover the graves
+            view.padding = { right: 300 };
           } else {
             // No links — zoom to just the selected person's grave
-            const startKey = currentFilterName.trim().toLowerCase();
             const gravesResult = await gravesLayer.queryFeatures({
               where: `person_id LIKE '%${currentFilterName}%'`,
               outFields: ["person_id"],
@@ -1463,10 +1462,7 @@
 
             // Zoom to extent of all involved graves with padding
             if (extent && count > 0) {
-              await view.goTo({
-                target: extent,
-                expansion: 1.4
-              }, { duration: 1200, easing: "ease-in-out" });
+              await view.goTo(extent, { duration: 1200, easing: "ease-in-out" });
             }
           } catch (err) {
             console.error("Lineage build failed:", err);
