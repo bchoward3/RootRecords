@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>RootRecords</title>
-    // - I opted to use the latest JS SDK (5.1) - /
     <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
     <style>
       html, body, #viewDiv {
@@ -242,6 +241,38 @@
 
     <!-- Add Site trigger button -->
     <button id="addSiteTrigger">＋ Add Site</button>
+
+    <!-- Filter by Person text button with tooltip -->
+    <div id="filterBtnWrap" style="position:relative; display:inline-block;">
+      <button id="filterTrigger" style="
+        background:white; padding:10px 14px; border-radius:4px;
+        box-shadow:0 1px 4px rgba(0,0,0,0.25); cursor:pointer;
+        font-family:'Georgia',serif; font-size:12px; color:#1a1a2e;
+        border:none; display:flex; align-items:center; gap:6px;
+        letter-spacing:0.5px;
+      ">⌕ Filter by Person</button>
+      <span id="filterInfoIcon" style="
+        display:inline-flex; align-items:center; justify-content:center;
+        width:16px; height:16px; border-radius:50%;
+        background:#1a1a2e; color:#e8d5b0;
+        font-size:10px; font-weight:bold; cursor:default;
+        margin-left:4px; vertical-align:middle;
+        font-family:'Georgia',serif;
+      ">i</span>
+      <div id="filterTooltip" style="
+        display:none; position:absolute;
+        left:0; top:calc(100% + 6px);
+        width:220px; background:white;
+        border-radius:4px; padding:10px 12px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.2);
+        font-family:'Georgia',serif; font-size:11px;
+        color:#555; line-height:1.6; z-index:999;
+        pointer-events:none;
+      ">
+        <strong style="display:block; color:#1a1a2e; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px;">Filter by Person</strong>
+        Search or browse all recorded individuals. Selecting a person filters the map to their sites and unlocks the <em>Trace Family Web</em> button to draw their ancestral and descendant lineage lines.
+      </div>
+    </div>
 
     <!-- Lineage web toggle (show all) with hover tooltip -->
     <div id="lineageToggleWrap" style="position:relative; display:inline-block;">
@@ -571,9 +602,38 @@
       const editorExpand = new Expand({ view, content: editor, expandIcon: "edit", expandTooltip: "Edit existing records", group: "top-right" });
       view.ui.add(editorExpand, "top-right");
       view.ui.add(new Expand({ view, content: new BasemapGallery({ view }), expandIcon: "basemap", expandTooltip: "Change basemap", group: "top-right" }), "top-right");
-      view.ui.add(new Expand({ view, content: document.getElementById("searchPanel"), expandIcon: "filter", expandTooltip: "Filter by person", group: "top-right" }), "top-right");
       view.ui.add(document.getElementById("layerToggle"), "bottom-left");
       view.ui.add(document.getElementById("addSiteTrigger"), "top-left");
+      view.ui.add(document.getElementById("filterBtnWrap"), "top-left");
+
+      // Wire up the Filter by Person text button to show/hide the search panel
+      // as a floating panel rather than an Expand widget icon — I made this change
+      // because the filter icon was too easy to miss and the feature is central
+      // to navigating the app.
+      const searchPanel = document.getElementById("searchPanel");
+      searchPanel.style.cssText += `
+        position:fixed; top:110px; left:10px; z-index:200;
+        width:280px; display:none; border-radius:6px;
+        box-shadow:0 2px 12px rgba(0,0,0,0.25);
+      `;
+      document.getElementById("filterTrigger").addEventListener("click", () => {
+        const isVisible = searchPanel.style.display === "block";
+        searchPanel.style.display = isVisible ? "none" : "block";
+      });
+
+      // Filter tooltip hover
+      document.getElementById("filterInfoIcon").addEventListener("mouseenter", () => {
+        document.getElementById("filterTooltip").style.display = "block";
+      });
+      document.getElementById("filterInfoIcon").addEventListener("mouseleave", () => {
+        document.getElementById("filterTooltip").style.display = "none";
+      });
+
+      // Lineage info tooltip hover
+      const infoIcon = document.getElementById("lineageInfoIcon");
+      const tooltip = document.getElementById("lineageTooltip");
+      infoIcon.addEventListener("mouseenter", () => tooltip.style.display = "block");
+      infoIcon.addEventListener("mouseleave", () => tooltip.style.display = "none");
 
       // I added layer visibility toggles so a user can isolate one site type
       // at a time — for example, showing only graves when working in a cemetery,
@@ -1059,12 +1119,6 @@
       map.add(lineageLayer);
       map.add(labelsLayer);
       view.ui.add(document.getElementById("lineageToggleWrap"), "top-left");
-
-      // Show tooltip on hover over the info icon
-      const infoIcon = document.getElementById("lineageInfoIcon");
-      const tooltip = document.getElementById("lineageTooltip");
-      infoIcon.addEventListener("mouseenter", () => tooltip.style.display = "block");
-      infoIcon.addEventListener("mouseleave", () => tooltip.style.display = "none");
       let lineageVisible = false;
 
       // Ancestor lines are red tones (getting lighter with each generation back)
