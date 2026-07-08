@@ -623,7 +623,7 @@
       let currentFilterName = null;
       let currentFilterGlobalId = null; // Phase 1: store GlobalID_2 for trace
 
-      function applyFilter(name, globalId) {
+      async function applyFilter(name, globalId) {
         currentFilterName = name;
         currentFilterGlobalId = globalId || null;
         document.getElementById("personSearch").value = name;
@@ -1467,4 +1467,5 @@
     </script>
   </body>
 </html>
+
 
