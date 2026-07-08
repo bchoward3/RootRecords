@@ -1197,7 +1197,9 @@
       // ── Add a name label graphic at a point ──
       // I check how many existing labels are near the same point and
       // offset each one vertically so they don't stack on top of each other.
-      function addLabel(name, point, labeledNames) {
+      // The color parameter matches the generation line color so labels
+      // visually correspond to their lineage connection.
+      function addLabel(name, point, labeledNames, color) {
         const displayName = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
         if (labeledNames.has(displayName)) return;
         labeledNames.add(displayName);
@@ -1212,11 +1214,14 @@
           }
         });
 
+        // Use provided color or fall back to default navy
+        const labelColor = color || [26, 26, 46, 255];
+
         labelsLayer.add(new Graphic({
           geometry: point,
           symbol: {
             type: "text",
-            color: [26, 26, 46, 255],
+            color: labelColor,
             haloColor: [255, 255, 255, 240],
             haloSize: "2px",
             text: displayName,
@@ -1292,8 +1297,8 @@
         const labeledNames = new Set();
         const startKey = startName.trim().toLowerCase();
 
-        // Label the starting person
-        if (gravesByName[startKey]) addLabel(startKey, gravesByName[startKey], labeledNames);
+        // Label the starting person in navy
+        if (gravesByName[startKey]) addLabel(startKey, gravesByName[startKey], labeledNames, [26, 26, 46, 255]);
 
         // ── Trace ancestors (upward — red lines) ──
         function traceAncestors(name, generation) {
@@ -1314,7 +1319,7 @@
               popupTemplate: { title: "Ancestor Connection", content: `{relationship}` }
             }));
             involvedPoints.push(childPoint, parentPoint);
-            addLabel(person.father, parentPoint, labeledNames);
+            addLabel(person.father, parentPoint, labeledNames, color);
             lineCount++;
             traceAncestors(person.father, generation + 1);
           }
@@ -1327,7 +1332,7 @@
               popupTemplate: { title: "Ancestor Connection", content: `{relationship}` }
             }));
             involvedPoints.push(childPoint, parentPoint);
-            addLabel(person.mother, parentPoint, labeledNames);
+            addLabel(person.mother, parentPoint, labeledNames, color);
             lineCount++;
             traceAncestors(person.mother, generation + 1);
           }
@@ -1353,7 +1358,7 @@
               popupTemplate: { title: "Descendant Connection", content: `{relationship}` }
             }));
             involvedPoints.push(parentPoint, childPoint);
-            addLabel(childName, childPoint, labeledNames);
+            addLabel(childName, childPoint, labeledNames, color);
             lineCount++;
             traceDescendants(childName, generation + 1);
           });
