@@ -647,6 +647,57 @@
         document.getElementById("webLegend").style.display = "none";
         document.getElementById("traceWebBtn").textContent = "⬡ Trace Family Web";
         document.getElementById("traceWebBtn").disabled = false;
+
+        // Zoom to the extent of all matching records across all three site layers
+        try {
+          const [gravesRes, birthRes, houseRes] = await Promise.all([
+            gravesLayer.queryFeatures({ where, outFields: ["person_id"], returnGeometry: true }),
+            birthplaceLayer.queryFeatures({ where, outFields: ["person_id"], returnGeometry: true }),
+            houseLayer.queryFeatures({ where, outFields: ["person_id"], returnGeometry: true })
+          ]);
+          const allFeatures = [
+            ...gravesRes.features,
+            ...birthRes.features,
+            ...houseRes.features
+          ].filter(f => f.geometry);
+
+          if (allFeatures.length === 1) {
+            await view.goTo({ target: allFeatures[0].geometry, zoom: 14 },
+              { duration: 1000, easing: "ease-in-out" });
+            labelsLayer.removeAll();
+            labelsLayer.add(new Graphic({
+              geometry: allFeatures[0].geometry,
+              symbol: {
+                type: "text",
+                color: [26, 26, 46, 255],
+                haloColor: [232, 213, 176, 255],
+                haloSize: "4px",
+                text: name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                font: { size: 11, family: "Georgia", weight: "bold" },
+                horizontalAlignment: "center", xoffset: 0, yoffset: 14
+              }
+            }));
+          } else if (allFeatures.length > 1) {
+            await view.goTo(allFeatures, { duration: 1000, easing: "ease-in-out" });
+            labelsLayer.removeAll();
+            allFeatures.forEach(f => {
+              labelsLayer.add(new Graphic({
+                geometry: f.geometry,
+                symbol: {
+                  type: "text",
+                  color: [26, 26, 46, 255],
+                  haloColor: [232, 213, 176, 255],
+                  haloSize: "4px",
+                  text: name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                  font: { size: 11, family: "Georgia", weight: "bold" },
+                  horizontalAlignment: "center", xoffset: 0, yoffset: 14
+                }
+              }));
+            });
+          }
+        } catch (err) {
+          console.warn("Zoom to filter extent failed:", err);
+        }
       }
 
       document.getElementById("searchBtn").addEventListener("click", async () => {
