@@ -1195,10 +1195,23 @@
       ];
 
       // ── Add a name label graphic at a point ──
+      // I check how many existing labels are near the same point and
+      // offset each one vertically so they don't stack on top of each other.
       function addLabel(name, point, labeledNames) {
         const displayName = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
         if (labeledNames.has(displayName)) return;
         labeledNames.add(displayName);
+
+        // Count how many labels are already near this point (within ~0.01 degrees)
+        let nearbyCount = 0;
+        labelsLayer.graphics.forEach(g => {
+          if (g.geometry &&
+              Math.abs(g.geometry.longitude - point.longitude) < 0.01 &&
+              Math.abs(g.geometry.latitude - point.latitude) < 0.01) {
+            nearbyCount++;
+          }
+        });
+
         labelsLayer.add(new Graphic({
           geometry: point,
           symbol: {
@@ -1210,7 +1223,7 @@
             font: { size: 10, family: "Georgia", weight: "bold" },
             horizontalAlignment: "center",
             xoffset: 0,
-            yoffset: 14
+            yoffset: 14 + (nearbyCount * 14)
           }
         }));
       }
