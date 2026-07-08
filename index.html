@@ -903,35 +903,35 @@
           // Find the geometry for this cemetery
           gravesLayer.queryFeatures({
             where: `CemeteryName = '${selectedName.replace(/'/g, "''")}'`,
-            outFields: ["CemeteryName"], returnGeometry: true
+            outFields: ["CemeteryName", "Address", "City", "County", "State"], returnGeometry: true
           }).then(result => {
             if (result.features.length > 0) {
-              // Average coordinates of all graves in this cemetery
-              let totalLat = 0, totalLon = 0;
-              result.features.forEach(f => {
-                totalLat += f.geometry.latitude;
-                totalLon += f.geometry.longitude;
-              });
-              const avgLat = totalLat / result.features.length;
-              const avgLon = totalLon / result.features.length;
-
-              // Use the first grave's geometry as the placed point
-              // (all graves in same cemetery are close enough)
               placedPoint = result.features[0].geometry;
+              const attrs = result.features[0].attributes;
 
-              document.getElementById("coordDisplay").textContent = `📍 ${result.features[0].geometry.latitude.toFixed(5)}, ${result.features[0].geometry.longitude.toFixed(5)}`;
+              document.getElementById("coordDisplay").textContent = `📍 ${placedPoint.latitude.toFixed(5)}, ${placedPoint.longitude.toFixed(5)}`;
               clickBanner.classList.remove("visible");
               if (mapClickHandler) { mapClickHandler.remove(); mapClickHandler = null; }
 
               // Zoom to the cemetery location
               view.goTo({ target: placedPoint, zoom: 16 }, { duration: 1000, easing: "ease-in-out" });
 
-              // Pre-fill cemetery name and advance to step 3
+              // Pre-fill cemetery fields and advance to step 3
               buildSiteFields();
               showStep(3);
-              // Pre-fill the cemetery name field
-              const cemeteryInput = document.getElementById("sCemeteryName");
-              if (cemeteryInput) cemeteryInput.value = selectedName;
+
+              // Pre-fill all available cemetery location fields
+              const fieldMap = {
+                sCemeteryName: attrs.CemeteryName,
+                sAddress:      attrs.Address,
+                sCity:         attrs.City,
+                sCounty:       attrs.County,
+                sState:        attrs.State
+              };
+              Object.entries(fieldMap).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el && val) el.value = val;
+              });
             }
           }).catch(err => console.warn("Cemetery location lookup failed:", err));
         };
@@ -1460,4 +1460,3 @@
     </script>
   </body>
 </html>
-
