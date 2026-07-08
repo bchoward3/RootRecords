@@ -246,14 +246,10 @@
         <div style="margin-bottom:4px; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase;">Generation Key</div>
         <div style="margin-bottom:3px; font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Ancestors (red)</div>
         <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(100,0,0);"></span> Gen 1 — Parents</div>
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(160,40,40);"></span> Gen 2 — Grandparents</div>
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(200,100,100);"></span> Gen 3</div>
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(230,170,170);"></span> Gen 4</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(160,40,40);"></span> Gen 2 — Grandparents</div>
         <div style="margin-bottom:3px; font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Descendants (blue)</div>
         <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(0,0,120);"></span> Gen 1 — Children</div>
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(40,40,180);"></span> Gen 2 — Grandchildren</div>
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(100,100,210);"></span> Gen 3</div>
-        <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(170,170,230);"></span> Gen 4</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:0px;"><span style="display:inline-block; width:28px; height:3px; background:rgb(40,40,180);"></span> Gen 2 — Grandchildren</div>
       </div>
     </div>
 
@@ -1185,7 +1181,8 @@
         }
 
         function traceDescendants(name, generation) {
-          if (generation > 4 || visitedDescendants.has(name) || !name) return;
+          // Limit to 2 generations (children and grandchildren) to match ancestor limit.
+          if (generation > 2 || visitedDescendants.has(name) || !name) return;
           visitedDescendants.add(name);
           const parentPoint = gravesByName[name];
           if (!parentPoint) return;
@@ -1373,5 +1370,6 @@
     </script>
   </body>
 </html>
+
 
 
