@@ -383,6 +383,33 @@
       </div>
     </div>
 
+    <!-- ── Edit Record Panel ── -->
+    <div id="editPanel" style="
+      position:fixed; top:58px; right:10px; z-index:300;
+      width:320px; background:white; border-radius:6px;
+      box-shadow:0 2px 12px rgba(0,0,0,0.3);
+      display:none; max-height:calc(100vh - 80px);
+      overflow-y:auto; font-family:'Georgia',serif;
+    ">
+      <div style="
+        background:#1a1a2e; color:#e8d5b0; padding:12px 16px;
+        display:flex; justify-content:space-between; align-items:center;
+        border-radius:6px 6px 0 0;
+        font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      ">
+        <span id="editPanelTitle">Edit Record</span>
+        <button id="closeEditPanel" style="background:none; border:none; color:#e8d5b0; font-size:18px; cursor:pointer; padding:0; line-height:1;">✕</button>
+      </div>
+      <div style="padding:14px 16px;">
+        <div id="editFields"></div>
+        <div id="editStatusMsg" class="status-msg"></div>
+        <div style="margin-top:14px; display:flex; gap:8px;">
+          <button class="rr-btn-secondary" id="cancelEditBtn" style="flex:1;">Cancel</button>
+          <button class="rr-btn" id="saveEditBtn" style="flex:2;">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module">
       // I am using the ArcGIS Maps SDK for JavaScript (v5.1) ES module syntax.
       import Map from "https://js.arcgis.com/5.1/@arcgis/core/Map.js";
@@ -405,6 +432,7 @@
 
       // Popup delete action — edit removed since Editor widget was removed.
       const popupActions = [
+        { title: "Edit record", id: "edit-record", className: "esri-icon-edit" },
         { title: "Delete record", id: "delete-record", className: "esri-icon-trash" }
       ];
 
@@ -608,11 +636,10 @@
       let currentFilterName = null;
       let currentFilterGlobalId = null; // Phase 1: store GlobalID_2 for trace
 
-      function applyFilter(name, globalId) {
+      async function applyFilter(name, globalId) {
         currentFilterName = name;
         currentFilterGlobalId = globalId || null;
         document.getElementById("personSearch").value = name;
-        // Filter site layers by person_id name field for display
         const where = `person_id LIKE '%${name}%'`;
         gravesLayer.definitionExpression = where;
         birthplaceLayer.definitionExpression = where;
@@ -628,6 +655,31 @@
         document.getElementById("webLegend").style.display = "none";
         document.getElementById("traceWebBtn").textContent = "⬡ Trace Family Web";
         document.getElementById("traceWebBtn").disabled = false;
+
+        // Zoom to the extent of all matching records across all three site layers
+        try {
+          const [gravesRes, birthRes, houseRes] = await Promise.all([
+            gravesLayer.queryFeatures({ where, outFields: ["person_id"], returnGeometry: true }),
+            birthplaceLayer.queryFeatures({ where, outFields: ["person_id"], returnGeometry: true }),
+            houseLayer.queryFeatures({ where, outFields: ["person_id"], returnGeometry: true })
+          ]);
+          const allFeatures = [
+            ...gravesRes.features,
+            ...birthRes.features,
+            ...houseRes.features
+          ].filter(f => f.geometry);
+
+          if (allFeatures.length === 1) {
+            // Single record — zoom to point at a readable level
+            await view.goTo({ target: allFeatures[0].geometry, zoom: 14 },
+              { duration: 1000, easing: "ease-in-out" });
+          } else if (allFeatures.length > 1) {
+            // Multiple records — zoom to fit all of them
+            await view.goTo(allFeatures, { duration: 1000, easing: "ease-in-out" });
+          }
+        } catch (err) {
+          console.warn("Zoom to filter extent failed:", err);
+        }
       }
 
       document.getElementById("searchBtn").addEventListener("click", async () => {
@@ -726,7 +778,160 @@
         }
       });
 
-      // Popup delete handler — uses applyEdits with OBJECTID for reliability.
+      // Field definitions per layer type for the edit panel
+      const editFieldDefs = {
+        graves: [
+          { field: "person_id",    label: "Person Name",    type: "text" },
+          { field: "DOB",          label: "Date of Birth",  type: "date" },
+          { field: "DOD",          label: "Date of Death",  type: "date" },
+          { field: "Father",       label: "Father",         type: "text" },
+          { field: "Mother",       label: "Mother",         type: "text" },
+          { field: "CemeteryName", label: "Cemetery Name",  type: "text" },
+          { field: "Address",      label: "Address",        type: "text" },
+          { field: "City",         label: "City",           type: "text" },
+          { field: "County",       label: "County",         type: "text" },
+          { field: "State",        label: "State",          type: "text" },
+          { field: "Description",  label: "Notes",          type: "textarea" }
+        ],
+        birthplaces: [
+          { field: "person_id",   label: "Person Name",   type: "text" },
+          { field: "DOB",         label: "Date of Birth", type: "date" },
+          { field: "Father",      label: "Father",        type: "text" },
+          { field: "Mother",      label: "Mother",        type: "text" },
+          { field: "City",        label: "City",          type: "text" },
+          { field: "County",      label: "County",        type: "text" },
+          { field: "State",       label: "State",         type: "text" },
+          { field: "Description", label: "Notes",         type: "textarea" }
+        ],
+        houses: [
+          { field: "person_id",   label: "Person Name",   type: "text" },
+          { field: "Father",      label: "Father",        type: "text" },
+          { field: "Mother",      label: "Mother",        type: "text" },
+          { field: "Address",     label: "Address",       type: "text" },
+          { field: "City",        label: "City",          type: "text" },
+          { field: "County",      label: "County",        type: "text" },
+          { field: "State",       label: "State",         type: "text" },
+          { field: "Description", label: "Notes",         type: "textarea" }
+        ]
+      };
+
+      let editFeature = null;
+      let editLayer = null;
+
+      function openEditPanel(feature, layer) {
+        editFeature = feature;
+        editLayer = layer;
+        const attrs = feature.attributes;
+
+        // Determine layer type from URL
+        const layerType = layer.url.endsWith("/2") ? "graves"
+          : layer.url.endsWith("/0") ? "birthplaces"
+          : "houses";
+
+        const titles = { graves: "Edit Grave", birthplaces: "Edit Birthplace", houses: "Edit House / Site" };
+        document.getElementById("editPanelTitle").textContent = titles[layerType];
+
+        // Build form fields pre-populated with existing values
+        const container = document.getElementById("editFields");
+        container.innerHTML = "";
+        (editFieldDefs[layerType] || []).forEach(def => {
+          const label = document.createElement("div");
+          label.style.cssText = "font-size:11px; color:#666; margin:8px 0 3px; text-transform:uppercase; letter-spacing:0.5px;";
+          label.textContent = def.label;
+          container.appendChild(label);
+
+          if (def.type === "textarea") {
+            const ta = document.createElement("textarea");
+            ta.id = `edit_${def.field}`;
+            ta.className = "rr-input";
+            ta.style.height = "60px"; ta.style.resize = "vertical";
+            ta.value = attrs[def.field] || "";
+            container.appendChild(ta);
+          } else if (def.type === "date") {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.id = `edit_${def.field}`;
+            input.className = "rr-input";
+            input.placeholder = "YYYY-MM-DD";
+            // Format existing date value if present
+            if (attrs[def.field]) {
+              const d = new Date(attrs[def.field]);
+              if (!isNaN(d)) {
+                input.value = d.toISOString().split("T")[0];
+              }
+            }
+            container.appendChild(input);
+          } else {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.id = `edit_${def.field}`;
+            input.className = "rr-input";
+            input.value = attrs[def.field] || "";
+            container.appendChild(input);
+          }
+        });
+
+        document.getElementById("editStatusMsg").className = "status-msg";
+        document.getElementById("saveEditBtn").textContent = "Save Changes";
+        document.getElementById("saveEditBtn").disabled = false;
+        document.getElementById("editPanel").style.display = "block";
+      }
+
+      document.getElementById("closeEditPanel").addEventListener("click", () => {
+        document.getElementById("editPanel").style.display = "none";
+        editFeature = null; editLayer = null;
+      });
+      document.getElementById("cancelEditBtn").addEventListener("click", () => {
+        document.getElementById("editPanel").style.display = "none";
+        editFeature = null; editLayer = null;
+      });
+
+      document.getElementById("saveEditBtn").addEventListener("click", async () => {
+        if (!editFeature || !editLayer) return;
+        const saveBtn = document.getElementById("saveEditBtn");
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving...";
+
+        const layerType = editLayer.url.endsWith("/2") ? "graves"
+          : editLayer.url.endsWith("/0") ? "birthplaces"
+          : "houses";
+
+        const updatedAttrs = { OBJECTID: editFeature.attributes.OBJECTID };
+        (editFieldDefs[layerType] || []).forEach(def => {
+          const el = document.getElementById(`edit_${def.field}`);
+          if (!el) return;
+          if (def.type === "date") {
+            const val = el.value.trim();
+            updatedAttrs[def.field] = val ? new Date(val).toISOString() : null;
+          } else {
+            updatedAttrs[def.field] = el.value.trim() || null;
+          }
+        });
+
+        try {
+          const result = await editLayer.applyEdits({
+            updateFeatures: [{ attributes: updatedAttrs }]
+          });
+          if (result.updateFeatureResults[0].error) throw result.updateFeatureResults[0].error;
+          const statusEl = document.getElementById("editStatusMsg");
+          statusEl.textContent = "✓ Record updated successfully";
+          statusEl.className = "status-msg success";
+          saveBtn.textContent = "Saved!";
+          setTimeout(() => {
+            document.getElementById("editPanel").style.display = "none";
+            editFeature = null; editLayer = null;
+          }, 1500);
+        } catch (err) {
+          console.error("Edit failed:", err);
+          const statusEl = document.getElementById("editStatusMsg");
+          statusEl.textContent = `Save failed: ${err.message || JSON.stringify(err)}`;
+          statusEl.className = "status-msg error";
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save Changes";
+        }
+      });
+
+      // Popup action handlers — delete and now edit
       on(() => view.popup, "trigger-action", async (event) => {
         const feature = view.popup.selectedFeature;
         if (!feature) return;
@@ -736,6 +941,10 @@
           if (feature.sourceLayer?.url?.includes(l.url?.split("/FeatureServer")[0]?.split("/").pop())) {
             targetLayer = l; break;
           }
+        }
+        if (event.action.id === "edit-record") {
+          view.popup.close();
+          openEditPanel(feature, targetLayer);
         }
         if (event.action.id === "delete-record") {
           const name = feature.attributes.person_id || "this feature";
@@ -1379,6 +1588,7 @@
     </script>
   </body>
 </html>
+
 
 
 
