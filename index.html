@@ -1549,6 +1549,16 @@
       birthplaceLayer.when(() => console.log("Birthplaces loaded")).catch(e => console.error("Birthplaces failed:", e));
       houseLayer.when(() => console.log("Houses loaded")).catch(e => console.error("Houses failed:", e));
 
+      // Scale the Esri UI down on large monitors using the zoom property
+      // which reaches inside Shadow DOM components unlike CSS transform.
+      view.when(() => {
+        if (window.innerWidth >= 2560) {
+          document.querySelector(".esri-ui").style.zoom = "0.7";
+        } else if (window.innerWidth >= 1920) {
+          document.querySelector(".esri-ui").style.zoom = "0.8";
+        }
+      });
+
     </script>
   </body>
 </html>
