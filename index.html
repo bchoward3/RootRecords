@@ -673,9 +673,39 @@
             // Single record — zoom to point at a readable level
             await view.goTo({ target: allFeatures[0].geometry, zoom: 14 },
               { duration: 1000, easing: "ease-in-out" });
+            // Label the person on the map
+            labelsLayer.removeAll();
+            labelsLayer.add(new Graphic({
+              geometry: allFeatures[0].geometry,
+              symbol: {
+                type: "text",
+                color: [26, 26, 46, 255],
+                haloColor: [232, 213, 176, 255],
+                haloSize: "4px",
+                text: name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                font: { size: 11, family: "Georgia", weight: "bold" },
+                horizontalAlignment: "center", xoffset: 0, yoffset: 14
+              }
+            }));
           } else if (allFeatures.length > 1) {
             // Multiple records — zoom to fit all of them
             await view.goTo(allFeatures, { duration: 1000, easing: "ease-in-out" });
+            // Label each matched site
+            labelsLayer.removeAll();
+            allFeatures.forEach(f => {
+              labelsLayer.add(new Graphic({
+                geometry: f.geometry,
+                symbol: {
+                  type: "text",
+                  color: [26, 26, 46, 255],
+                  haloColor: [232, 213, 176, 255],
+                  haloSize: "4px",
+                  text: name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                  font: { size: 11, family: "Georgia", weight: "bold" },
+                  horizontalAlignment: "center", xoffset: 0, yoffset: 14
+                }
+              }));
+            });
           }
         } catch (err) {
           console.warn("Zoom to filter extent failed:", err);
@@ -1588,6 +1618,7 @@
     </script>
   </body>
 </html>
+
 
 
 
