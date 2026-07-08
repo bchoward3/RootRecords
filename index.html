@@ -1226,18 +1226,14 @@
           btn.textContent = count > 0 ? `⬡ ${count} links traced` : "⬡ No links found";
           document.getElementById("webLegend").style.display = count > 0 ? "block" : "none";
 
-          if (extent && count > 0) {
-            const buffer = 0.05;
-            await view.goTo({
-              target: {
-                type: "extent",
-                xmin: extent.xmin - buffer, ymin: extent.ymin - buffer,
-                xmax: extent.xmax + buffer, ymax: extent.ymax + buffer,
-                spatialReference: { wkid: 4326 }
-              }
-            }, { duration: 1200, easing: "ease-in-out" });
+          if (count > 0) {
+            // Zoom to the full extent of all lineage graphics
+            // using the graphics layer directly which handles projection correctly
+            await view.goTo(lineageLayer.graphics.toArray(), {
+              duration: 1200, easing: "ease-in-out"
+            });
           } else if (startPoint) {
-            // No links but zoom to the person's grave
+            // No links — zoom to just the selected person's grave
             await view.goTo({ target: startPoint, zoom: 14 }, { duration: 1200, easing: "ease-in-out" });
           }
         } catch (err) {
@@ -1329,16 +1325,10 @@
             lineageVisible = true;
             btn.classList.add("active");
             btn.textContent = count > 0 ? `⬡ Hide All Family Web (${count} links)` : "⬡ Hide All Family Web (no links yet)";
-            if (extent && count > 0) {
-              const buffer = 0.05;
-              await view.goTo({
-                target: {
-                  type: "extent",
-                  xmin: extent.xmin - buffer, ymin: extent.ymin - buffer,
-                  xmax: extent.xmax + buffer, ymax: extent.ymax + buffer,
-                  spatialReference: { wkid: 4326 }
-                }
-              }, { duration: 1200, easing: "ease-in-out" });
+            if (count > 0) {
+              await view.goTo(lineageLayer.graphics.toArray(), {
+                duration: 1200, easing: "ease-in-out"
+              });
             }
           } catch (err) {
             console.error("Lineage build failed:", err);
@@ -1365,3 +1355,4 @@
     </script>
   </body>
 </html>
+
