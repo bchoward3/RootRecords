@@ -1241,6 +1241,15 @@
           btn.textContent = count > 0 ? `⬡ ${count} links traced` : "⬡ No links found";
           document.getElementById("webLegend").style.display = count > 0 ? "block" : "none";
 
+          // Once the trace is active, remove the definition expression filter
+          // from all site layers so that graves/birthplaces/houses of connected
+          // family members become visible alongside the lineage lines.
+          if (count > 0) {
+            gravesLayer.definitionExpression = "";
+            birthplaceLayer.definitionExpression = "";
+            houseLayer.definitionExpression = "";
+          }
+
           if (count > 0) {
             // Zoom to the full extent of all lineage graphics
             // using the graphics layer directly which handles projection correctly
@@ -1370,6 +1379,7 @@
     </script>
   </body>
 </html>
+
 
 
 
