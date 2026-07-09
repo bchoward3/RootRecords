@@ -756,11 +756,10 @@
                 if (fullResult.features.length > 0) {
                   const f = fullResult.features[0];
                   f.sourceLayer = layer;
-                  view.popup.open({
+                  view.openPopup({
                     title: f.attributes.person_id,
                     features: [f],
-                    location: f.geometry,
-                    fetchFeatures: true
+                    location: f.geometry
                   });
                   // Move search panel left so it doesn't overlap popup
                   searchPanel.style.right = "auto";
@@ -1899,6 +1898,7 @@
     </script>
   </body>
 </html>
+
 
 
 
