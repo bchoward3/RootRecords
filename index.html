@@ -684,7 +684,10 @@
       });
       const view = new MapView({
         map, center: [-85.3, 37.8], zoom: 7, container: "viewDiv",
-        popup: { dockEnabled: true, dockOptions: { position: "bottom-left", breakpoint: false } }
+        popup: {
+          dockEnabled: false,
+          autoOpenEnabled: false
+        }
       });
 
       // Declare lineage and label layers early so applyFilter and clearBtn
@@ -2072,8 +2075,6 @@
           btn.disabled = false;
         }
       });
-
-      view.popup.autoOpenEnabled = false;
 
       view.on("click", async (e) => {
         // Don't open feature panel if we're in place or move mode
