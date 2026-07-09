@@ -1952,7 +1952,7 @@
           });
           extent = { type: "extent", xmin, ymin, xmax, ymax, spatialReference: { wkid: 4326 } };
         }
-        return { count: lineCount, extent, startPoint };
+        return { count: lineCount, extent, startPoint, involvedNames: [...visitedAncestors, ...visitedDescendants, startKey] };
       }
 
       // Trace button — passes both name and GlobalID_2 to traceFromPerson.
@@ -1962,14 +1962,19 @@
         btn.disabled = true;
         btn.textContent = "⬡ Tracing...";
         try {
-          console.log("Tracing from:", currentFilterName, "GlobalID:", currentFilterGlobalId);
-          const { count, extent, startPoint } = await traceFromPerson(currentFilterName, currentFilterGlobalId);
+          const { count, extent, startPoint, involvedNames } = await traceFromPerson(currentFilterName, currentFilterGlobalId);
           lineageLayer.visible = true;
           lineageVisible = true;
           btn.textContent = count > 0 ? `⬡ ${count} links traced` : "⬡ No links found";
           if (count > 0) {
             buildLegend(ancestorGens, descendantGens);
             document.getElementById("webLegend").style.display = "block";
+            // Show only graves involved in the trace so lines have termination points
+            const nameList = involvedNames.map(n => `'${n.replace(/'/g, "''")}'`).join(",");
+            const traceFilter = `LOWER(person_id) IN (${nameList})`;
+            gravesLayer.definitionExpression = traceFilter;
+            birthplaceLayer.definitionExpression = traceFilter;
+            houseLayer.definitionExpression = traceFilter;
           } else {
             document.getElementById("webLegend").style.display = "none";
           }
