@@ -622,7 +622,7 @@
       });
       const view = new MapView({
         map, center: [-85.3, 37.8], zoom: 7, container: "viewDiv",
-        popup: { dockEnabled: true, dockOptions: { position: "bottom-right", breakpoint: false } }
+        popup: { dockEnabled: true, dockOptions: { position: "bottom-left", breakpoint: false } }
       });
 
       // Standard navigation widgets.
@@ -761,9 +761,6 @@
                     features: [f],
                     location: f.geometry
                   });
-                  // Move search panel left so it doesn't overlap popup
-                  searchPanel.style.right = "auto";
-                  searchPanel.style.left = "10px";
                   break;
                 }
               }
@@ -844,11 +841,6 @@
         labelsLayer.removeAll();
         document.getElementById("lineageToggle").textContent = "⬡ Show All Family Web";
         document.getElementById("lineageToggle").classList.remove("active");
-        // Reset search panel back to right side
-        searchPanel.style.left = "auto";
-        const filterBtn = document.getElementById("filterTrigger");
-        const rect = filterBtn.getBoundingClientRect();
-        searchPanel.style.right = (window.innerWidth - rect.right) + "px";
         view.popup.close();
       });
 
