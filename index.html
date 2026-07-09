@@ -814,9 +814,8 @@
 
       // Search helper — tries LIKE first, falls back to SOUNDEX for phonetic matching
       async function searchPersonByName(input) {
+        console.log("searchPersonByName called with:", input);
         const safe = input.replace(/'/g, "''");
-
-        // Wait for personsTable to be ready
         await personsTable.when();
 
         // Diagnostic test
@@ -852,10 +851,14 @@
             where: "1=1", outFields: ["Name", "GlobalID_2"], returnGeometry: false
           });
           const inputCode = soundex(safe);
-          console.log("Soundex code:", inputCode);
+          console.log("Soundex code for input:", inputCode);
+          console.log("All names:", allResult.features.map(f => `${f.attributes.Name} → ${soundex(f.attributes.Name || "")}`));
           const match = allResult.features.find(f => {
             const name = f.attributes.Name || "";
-            return soundex(name) === inputCode || soundex(name.split(" ")[0]) === inputCode;
+            const nameCode = soundex(name);
+            const firstCode = soundex(name.split(" ")[0]);
+            console.log(`Comparing ${name}: ${nameCode} vs ${inputCode}, first: ${firstCode}`);
+            return nameCode === inputCode || firstCode === inputCode;
           });
           if (match) {
             console.log("Soundex match:", match.attributes.Name);
