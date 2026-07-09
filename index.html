@@ -804,51 +804,76 @@
         }
       }
 
+      // Search helper — tries LIKE first, falls back to SOUNDEX for phonetic matching
+      async function searchPersonByName(input) {
+        // First try exact/partial LIKE match
+        let result = await personsTable.queryFeatures({
+          where: `Name LIKE '%${input}%'`,
+          outFields: ["Name", "GlobalID_2"],
+          returnGeometry: false
+        });
+        if (result.features.length > 0) {
+          return { feature: result.features[0], matched: "like" };
+        }
+        // Fall back to SOUNDEX phonetic match
+        result = await personsTable.queryFeatures({
+          where: `SOUNDEX(Name) = SOUNDEX('${input}')`,
+          outFields: ["Name", "GlobalID_2"],
+          returnGeometry: false
+        });
+        if (result.features.length > 0) {
+          return { feature: result.features[0], matched: "soundex" };
+        }
+        return null;
+      }
+
       document.getElementById("searchBtn").addEventListener("click", async () => {
-        const name = document.getElementById("personSearch").value.trim();
-        if (!name) return;
+        const input = document.getElementById("personSearch").value.trim();
+        if (!input) return;
         try {
-          const result = await personsTable.queryFeatures({
-            where: `Name LIKE '%${name}%'`,
-            outFields: ["Name", "GlobalID_2"],
-            returnGeometry: false
-          });
-          if (result.features.length > 0) {
-            const fullName = result.features[0].attributes.Name;
-            const globalId = result.features[0].attributes.GlobalID_2 || null;
+          const found = await searchPersonByName(input);
+          if (found) {
+            const fullName = found.feature.attributes.Name;
+            const globalId = found.feature.attributes.GlobalID_2 || null;
+            if (found.matched === "soundex") {
+              // Brief visual cue that a soundalike match was used
+              document.getElementById("personSearch").placeholder = `Did you mean: ${fullName}?`;
+            }
             applyFilter(fullName, globalId);
           } else {
-            applyFilter(name, null);
+            applyFilter(input, null);
           }
         } catch (err) {
-          applyFilter(name, null);
+          console.warn("Search failed:", err);
+          applyFilter(input, null);
         }
       });
 
       document.getElementById("personSearch").addEventListener("keydown", async e => {
         if (e.key !== "Enter") return;
-        const name = document.getElementById("personSearch").value.trim();
-        if (!name) return;
+        const input = document.getElementById("personSearch").value.trim();
+        if (!input) return;
         try {
-          const result = await personsTable.queryFeatures({
-            where: `Name LIKE '%${name}%'`,
-            outFields: ["Name", "GlobalID_2"],
-            returnGeometry: false
-          });
-          if (result.features.length > 0) {
-            const fullName = result.features[0].attributes.Name;
-            const globalId = result.features[0].attributes.GlobalID_2 || null;
+          const found = await searchPersonByName(input);
+          if (found) {
+            const fullName = found.feature.attributes.Name;
+            const globalId = found.feature.attributes.GlobalID_2 || null;
+            if (found.matched === "soundex") {
+              document.getElementById("personSearch").placeholder = `Did you mean: ${fullName}?`;
+            }
             applyFilter(fullName, globalId);
           } else {
-            applyFilter(name, null);
+            applyFilter(input, null);
           }
         } catch (err) {
-          applyFilter(name, null);
+          console.warn("Search failed:", err);
+          applyFilter(input, null);
         }
       });
 
       document.getElementById("clearBtn").addEventListener("click", () => {
         document.getElementById("personSearch").value = "";
+        document.getElementById("personSearch").placeholder = "Enter name...";
         currentFilterName = null;
         currentFilterGlobalId = null;
         gravesLayer.definitionExpression = "";
@@ -2026,6 +2051,7 @@
     </script>
   </body>
 </html>
+
 
 
 
