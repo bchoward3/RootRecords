@@ -860,8 +860,18 @@
         console.log("No match found");
         return null;
       }
+          if (match) {
+            console.log("Soundex match:", match.attributes.Name);
+            return { feature: match, matched: "soundex" };
+          }
+        } catch (soundexErr) {
+          console.warn("Soundex failed:", soundexErr?.message);
+        }
 
-      // Client-side Soundex implementation
+        return null;
+      }
+
+      // Client-side Soundex implementation as fallback
       function soundex(str) {
         const s = str.toUpperCase().replace(/[^A-Z]/g, "");
         if (!s) return "";
@@ -2093,6 +2103,7 @@
     </script>
   </body>
 </html>
+
 
 
 
