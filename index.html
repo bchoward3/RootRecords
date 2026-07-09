@@ -987,16 +987,16 @@
       });
 
       // ── Attachments ──
-      // Loads existing attachments for the feature and wires up the file picker.
+      // Uses REST API directly rather than SDK methods for reliability.
       async function loadAttachments(feature, layer) {
         const attachmentList = document.getElementById("attachmentList");
         const oid = feature.attributes[layer.objectIdField || "OBJECTID"];
         attachmentList.innerHTML = "<span style='color:#aaa;'>Loading...</span>";
         try {
-          const result = await layer.queryAttachments({
-            objectIds: [oid], returnMetadata: true
-          });
-          const attachments = result[oid] || [];
+          const url = `${layer.url}/${oid}/attachments?f=json`;
+          const response = await fetch(url);
+          const data = await response.json();
+          const attachments = data.attachmentInfos || [];
           if (attachments.length === 0) {
             attachmentList.innerHTML = "<span style='color:#aaa; font-size:11px;'>No attachments yet.</span>";
           } else {
@@ -1018,7 +1018,9 @@
               delBtn.addEventListener("click", async () => {
                 if (!confirm(`Delete "${att.name}"?`)) return;
                 try {
-                  await layer.deleteAttachments({ objectId: oid, attachmentIds: [att.id] });
+                  const delUrl = `${layer.url}/${oid}/deleteAttachments`;
+                  const body = new URLSearchParams({ attachmentIds: att.id, f: "json" });
+                  await fetch(delUrl, { method: "POST", body });
                   loadAttachments(feature, layer);
                 } catch (err) {
                   console.error("Delete attachment failed:", err);
@@ -1036,7 +1038,7 @@
         }
       }
 
-      // File picker — upload on file selection
+      // File picker — upload via REST multipart POST
       document.getElementById("attachmentInput").addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file || !editFeature || !editLayer) return;
@@ -1046,12 +1048,21 @@
         statusEl.style.color = "#888";
         try {
           const oid = editFeature.attributes[editLayer.objectIdField || "OBJECTID"];
-          await editLayer.addAttachment({ objectId: oid, attachment: file });
-          statusEl.textContent = `✓ ${file.name} uploaded`;
-          statusEl.style.color = "#2d5a2d";
-          e.target.value = ""; // reset picker
-          loadAttachments(editFeature, editLayer);
-          setTimeout(() => { statusEl.style.display = "none"; }, 2500);
+          const url = `${editLayer.url}/${oid}/addAttachment`;
+          const formData = new FormData();
+          formData.append("attachment", file, file.name);
+          formData.append("f", "json");
+          const response = await fetch(url, { method: "POST", body: formData });
+          const data = await response.json();
+          if (data.addAttachmentResult && data.addAttachmentResult.success) {
+            statusEl.textContent = `✓ ${file.name} uploaded`;
+            statusEl.style.color = "#2d5a2d";
+            e.target.value = "";
+            loadAttachments(editFeature, editLayer);
+            setTimeout(() => { statusEl.style.display = "none"; }, 2500);
+          } else {
+            throw new Error(data.error?.message || JSON.stringify(data));
+          }
         } catch (err) {
           console.error("Upload failed:", err);
           statusEl.textContent = `Upload failed: ${err.message || "unknown error"}`;
@@ -1833,6 +1844,7 @@
     </script>
   </body>
 </html>
+
 
 
 
