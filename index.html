@@ -806,10 +806,22 @@
 
       // Search helper — tries LIKE first, falls back to SOUNDEX for phonetic matching
       async function searchPersonByName(input) {
-        // Sanitize input to prevent SQL injection issues
         const safe = input.replace(/'/g, "''");
 
-        // First try exact/partial LIKE match
+        // Wait for personsTable to be ready
+        await personsTable.when();
+
+        // Diagnostic test
+        try {
+          const test = await personsTable.queryFeatures({
+            where: "1=1", outFields: ["Name"], returnGeometry: false, num: 1
+          });
+          console.log("Basic query OK:", test.features[0]?.attributes?.Name);
+        } catch (testErr) {
+          console.error("Basic query FAILED:", testErr?.message, JSON.stringify(testErr));
+        }
+
+        // LIKE match
         console.log("Searching LIKE for:", safe);
         try {
           const result = await personsTable.queryFeatures({
@@ -822,42 +834,29 @@
             return { feature: result.features[0], matched: "like" };
           }
         } catch (likeErr) {
-          console.warn("LIKE query failed:", likeErr?.message, JSON.stringify(likeErr));
+          console.warn("LIKE failed:", likeErr?.message, JSON.stringify(likeErr));
         }
 
-        // Fall back to SOUNDEX phonetic match
-        console.log("Trying SOUNDEX for:", safe);
+        // Client-side phonetic match
+        console.log("Trying client-side soundex for:", safe);
         try {
-          const result = await personsTable.queryFeatures({
-            where: `SOUNDEX(Name) = SOUNDEX('${safe}')`,
-            outFields: ["Name", "GlobalID_2"],
-            returnGeometry: false
+          const allResult = await personsTable.queryFeatures({
+            where: "1=1", outFields: ["Name", "GlobalID_2"], returnGeometry: false
           });
-          console.log("SOUNDEX results:", result.features.length, result.features.map(f => f.attributes.Name));
-          if (result.features.length > 0) {
-            return { feature: result.features[0], matched: "soundex" };
+          const inputCode = soundex(safe);
+          console.log("Soundex code:", inputCode);
+          const match = allResult.features.find(f => {
+            const name = f.attributes.Name || "";
+            return soundex(name) === inputCode || soundex(name.split(" ")[0]) === inputCode;
+          });
+          if (match) {
+            console.log("Soundex match:", match.attributes.Name);
+            return { feature: match, matched: "soundex" };
           }
         } catch (soundexErr) {
-          console.warn("SOUNDEX not supported:", soundexErr?.message, JSON.stringify(soundexErr));
-          // SOUNDEX failed — try a client-side phonetic match instead
-          try {
-            const allResult = await personsTable.queryFeatures({
-              where: "1=1", outFields: ["Name", "GlobalID_2"], returnGeometry: false
-            });
-            const inputCode = soundex(safe);
-            console.log("Client-side soundex code for input:", inputCode);
-            const match = allResult.features.find(f => {
-              const name = f.attributes.Name || "";
-              return soundex(name) === inputCode || soundex(name.split(" ")[0]) === inputCode;
-            });
-            if (match) {
-              console.log("Client-side match found:", match.attributes.Name);
-              return { feature: match, matched: "soundex" };
-            }
-          } catch (fallbackErr) {
-            console.warn("Client-side fallback failed:", fallbackErr?.message);
-          }
+          console.warn("Soundex failed:", soundexErr?.message);
         }
+
         return null;
       }
 
