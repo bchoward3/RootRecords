@@ -638,6 +638,14 @@
         popup: { dockEnabled: true, dockOptions: { position: "bottom-left", breakpoint: false } }
       });
 
+      // Declare lineage and label layers early so applyFilter and clearBtn
+      // can reference them before the full lineage logic is set up below.
+      const lineageLayer = new GraphicsLayer({ title: "Family Web", listMode: "hide" });
+      const labelsLayer = new GraphicsLayer({ title: "Family Labels", listMode: "hide" });
+      map.add(lineageLayer);
+      map.add(labelsLayer);
+      let lineageVisible = false;
+
       // Standard navigation widgets.
       view.ui.add(new Home({ view }), "top-left");
       view.ui.add(new Locate({ view }), "top-left");
@@ -1758,12 +1766,6 @@
         buildPills("ancestorPills", ancestorGens, v => { ancestorGens = v; });
         buildPills("descendantPills", descendantGens, v => { descendantGens = v; });
       }
-      const lineageLayer = new GraphicsLayer({ title: "Family Web", listMode: "hide" });
-      const labelsLayer = new GraphicsLayer({ title: "Family Labels", listMode: "hide" });
-      map.add(lineageLayer);
-      map.add(labelsLayer);
-      let lineageVisible = false;
-
       // Labels are colored to match their generation line and stacked vertically
       // when multiple people share the same grave location.
       function addLabel(name, point, labeledNames, color) {
@@ -2099,6 +2101,7 @@
     </script>
   </body>
 </html>
+
 
 
 
