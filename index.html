@@ -987,13 +987,20 @@
       });
 
       // ── Attachments ──
-      // Uses REST API directly rather than SDK methods for reliability.
+      // Uses REST API directly. Layer index derived from SERVICE_URL + known indices.
+      function getLayerRestUrl(layer) {
+        if (layer.url.endsWith("/2") || layer === gravesLayer) return `${SERVICE_URL}/2`;
+        if (layer.url.endsWith("/0") || layer === birthplaceLayer) return `${SERVICE_URL}/0`;
+        return `${SERVICE_URL}/1`;
+      }
+
       async function loadAttachments(feature, layer) {
         const attachmentList = document.getElementById("attachmentList");
         const oid = feature.attributes[layer.objectIdField || "OBJECTID"];
+        const layerRestUrl = getLayerRestUrl(layer);
         attachmentList.innerHTML = "<span style='color:#aaa;'>Loading...</span>";
         try {
-          const url = `${layer.url}/${oid}/attachments?f=json`;
+          const url = `${layerRestUrl}/${oid}/attachments?f=json`;
           const response = await fetch(url);
           const data = await response.json();
           const attachments = data.attachmentInfos || [];
@@ -1007,7 +1014,7 @@
               const isImage = att.contentType && att.contentType.startsWith("image/");
               const icon = isImage ? "🖼" : "📄";
               const link = document.createElement("a");
-              link.href = `${layer.url}/${oid}/attachments/${att.id}`;
+              link.href = `${layerRestUrl}/${oid}/attachments/${att.id}`;
               link.target = "_blank";
               link.style.cssText = "font-size:12px; color:#1a1a2e; text-decoration:none; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
               link.textContent = `${icon} ${att.name}`;
@@ -1018,7 +1025,7 @@
               delBtn.addEventListener("click", async () => {
                 if (!confirm(`Delete "${att.name}"?`)) return;
                 try {
-                  const delUrl = `${layer.url}/${oid}/deleteAttachments`;
+                  const delUrl = `${layerRestUrl}/${oid}/deleteAttachments`;
                   const body = new URLSearchParams({ attachmentIds: att.id, f: "json" });
                   await fetch(delUrl, { method: "POST", body });
                   loadAttachments(feature, layer);
@@ -1048,7 +1055,9 @@
         statusEl.style.color = "#888";
         try {
           const oid = editFeature.attributes[editLayer.objectIdField || "OBJECTID"];
-          const url = `${editLayer.url}/${oid}/addAttachment`;
+          const layerRestUrl = getLayerRestUrl(editLayer);
+          const url = `${layerRestUrl}/${oid}/addAttachment`;
+          console.log("Upload URL:", url);
           const formData = new FormData();
           formData.append("attachment", file, file.name);
           formData.append("f", "json");
@@ -1844,6 +1853,7 @@
     </script>
   </body>
 </html>
+
 
 
 
