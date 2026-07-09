@@ -817,44 +817,41 @@
         console.log("searchPersonByName called with:", input);
         const safe = input.replace(/'/g, "''");
 
-        // LIKE match
-        console.log("Searching LIKE for:", safe);
-        try {
-          const result = await personsTable.queryFeatures({
-            where: `Name LIKE '%${safe}%'`,
-            outFields: ["Name", "GlobalID_2"],
-            returnGeometry: false
-          });
-          console.log("LIKE results:", result.features.length, result.features.map(f => f.attributes.Name));
-          if (result.features.length > 0) {
-            return { feature: result.features[0], matched: "like" };
-          }
-        } catch (likeErr) {
-          console.warn("LIKE failed:", likeErr?.message, JSON.stringify(likeErr));
+        // Query Persons table directly via REST — more reliable than SDK for non-spatial tables
+        async function queryPersons(where) {
+          const url = `${PERSONS_URL}/query?where=${encodeURIComponent(where)}&outFields=Name,GlobalID_2&f=json&returnGeometry=false`;
+          console.log("Querying:", url);
+          const resp = await fetch(url);
+          const data = await resp.json();
+          console.log("Query response:", JSON.stringify(data).slice(0, 200));
+          return data.features || [];
         }
 
-        // Client-side phonetic match
-        console.log("Trying client-side soundex for:", safe);
+        // LIKE match
+        console.log("Trying LIKE...");
         try {
-          const allResult = await personsTable.queryFeatures({
-            where: "1=1", outFields: ["Name", "GlobalID_2"], returnGeometry: false
-          });
+          const features = await queryPersons(`Name LIKE '%${safe}%'`);
+          if (features.length > 0) {
+            console.log("LIKE match:", features[0].attributes.Name);
+            return { attributes: features[0].attributes, matched: "like" };
+          }
+        } catch (e) { console.warn("LIKE error:", e.message); }
+
+        // Client-side soundex — fetch all and match in JS
+        console.log("Trying soundex...");
+        try {
+          const features = await queryPersons("1=1");
           const inputCode = soundex(safe);
-          console.log("Soundex code for input:", inputCode);
-          console.log("All names:", allResult.features.map(f => `${f.attributes.Name} → ${soundex(f.attributes.Name || "")}`));
-          const match = allResult.features.find(f => {
+          console.log("Soundex code:", inputCode, "All names:", features.map(f => f.attributes.Name));
+          const match = features.find(f => {
             const name = f.attributes.Name || "";
-            const nameCode = soundex(name);
-            const firstCode = soundex(name.split(" ")[0]);
-            return nameCode === inputCode || firstCode === inputCode;
+            return soundex(name) === inputCode || soundex(name.split(" ")[0]) === inputCode;
           });
           if (match) {
             console.log("Soundex match:", match.attributes.Name);
-            return { feature: match, matched: "soundex" };
+            return { attributes: match.attributes, matched: "soundex" };
           }
-        } catch (soundexErr) {
-          console.warn("Soundex failed:", soundexErr?.message);
-        }
+        } catch (e) { console.warn("Soundex error:", e.message); }
 
         return null;
       }
@@ -890,10 +887,9 @@
         try {
           const found = await searchPersonByName(input);
           if (found) {
-            const fullName = found.feature.attributes.Name;
-            const globalId = found.feature.attributes.GlobalID_2 || null;
+            const fullName = found.attributes.Name;
+            const globalId = found.attributes.GlobalID_2 || null;
             if (found.matched === "soundex") {
-              // Brief visual cue that a soundalike match was used
               document.getElementById("personSearch").placeholder = `Did you mean: ${fullName}?`;
             }
             applyFilter(fullName, globalId);
@@ -913,8 +909,8 @@
         try {
           const found = await searchPersonByName(input);
           if (found) {
-            const fullName = found.feature.attributes.Name;
-            const globalId = found.feature.attributes.GlobalID_2 || null;
+            const fullName = found.attributes.Name;
+            const globalId = found.attributes.GlobalID_2 || null;
             if (found.matched === "soundex") {
               document.getElementById("personSearch").placeholder = `Did you mean: ${fullName}?`;
             }
