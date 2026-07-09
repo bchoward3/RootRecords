@@ -2073,112 +2073,106 @@
         }
       });
 
-      // ── Custom feature info panel ──
-      // Instead of trying to style Esri's Shadow DOM popup, we disable the
-      // default popup and show our own fully-styled sepia panel on click.
       view.popup.autoOpenEnabled = false;
 
       view.on("click", async (e) => {
+        // Don't open feature panel if we're in place or move mode
+        if (mapClickHandler || moveClickHandler) return;
+
         const hit = await view.hitTest(e);
         const result = hit.results.find(r =>
-          r.graphic && r.graphic.layer &&
+          r.graphic?.layer &&
           [gravesLayer, birthplaceLayer, houseLayer].includes(r.graphic.layer)
         );
+
         if (!result) {
           document.getElementById("featurePanel").style.display = "none";
           return;
         }
+
         const graphic = result.graphic;
         const layer = graphic.layer;
-        const attrs = graphic.attributes;
 
-        // Determine icon and fields by layer
+        // Query back with full attributes
+        const oid = graphic.attributes[layer.objectIdField || "OBJECTID"];
+        let attrs = graphic.attributes;
+        try {
+          const q = await layer.queryFeatures({
+            objectIds: [oid], outFields: ["*"], returnGeometry: false
+          });
+          if (q.features.length > 0) attrs = q.features[0].attributes;
+        } catch (e) { /* use existing attrs */ }
+
         const isGrave = layer === gravesLayer;
         const isBirth = layer === birthplaceLayer;
         const icon = isGrave ? "⚰" : isBirth ? "🏠" : "🏡";
-        const title = `${icon} ${attrs.person_id || "Unknown"}`;
+
+        document.getElementById("featurePanelTitle").textContent = `${icon} ${attrs.person_id || "Unknown"}`;
 
         const fieldDefs = isGrave ? [
           ["Date of Birth", attrs.DOB ? new Date(attrs.DOB).toLocaleDateString() : null],
           ["Date of Death", attrs.DOD ? new Date(attrs.DOD).toLocaleDateString() : null],
-          ["Father", attrs.Father],
-          ["Mother", attrs.Mother],
-          ["Cemetery", attrs.CemeteryName],
-          ["County", attrs.County],
-          ["State", attrs.State],
-          ["Notes", attrs.Description]
+          ["Father", attrs.Father], ["Mother", attrs.Mother],
+          ["Cemetery", attrs.CemeteryName], ["County", attrs.County],
+          ["State", attrs.State], ["Notes", attrs.Description]
         ] : isBirth ? [
           ["Date of Birth", attrs.DOB ? new Date(attrs.DOB).toLocaleDateString() : null],
-          ["Father", attrs.Father],
-          ["Mother", attrs.Mother],
-          ["City", attrs.City],
-          ["County", attrs.County],
-          ["State", attrs.State],
-          ["Notes", attrs.Description]
+          ["Father", attrs.Father], ["Mother", attrs.Mother],
+          ["City", attrs.City], ["County", attrs.County],
+          ["State", attrs.State], ["Notes", attrs.Description]
         ] : [
-          ["Father", attrs.Father],
-          ["Mother", attrs.Mother],
-          ["Address", attrs.Address],
-          ["City", attrs.City],
-          ["County", attrs.County],
-          ["State", attrs.State],
+          ["Father", attrs.Father], ["Mother", attrs.Mother],
+          ["Address", attrs.Address], ["City", attrs.City],
+          ["County", attrs.County], ["State", attrs.State],
           ["Notes", attrs.Description]
         ];
 
-        document.getElementById("featurePanelTitle").textContent = title;
-
-        const fieldsHtml = fieldDefs
-          .filter(([, val]) => val)
-          .map(([label, val]) => `
+        document.getElementById("featurePanelFields").innerHTML = fieldDefs
+          .filter(([, v]) => v)
+          .map(([l, v]) => `
             <div style="margin-bottom:8px;">
-              <div style="font-size:10px; color:#6b4c2a; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #d4c4a8; padding-bottom:2px; margin-bottom:2px; font-family:'Georgia',serif;">${label}</div>
-              <div style="font-size:12px; color:#2c1a0e; font-family:'Georgia',serif;">${val}</div>
-            </div>
-          `).join("");
+              <div style="font-size:10px;color:#6b4c2a;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #d4c4a8;padding-bottom:2px;margin-bottom:2px;font-family:'Georgia',serif;">${l}</div>
+              <div style="font-size:12px;color:#2c1a0e;font-family:'Georgia',serif;">${v}</div>
+            </div>`)
+          .join("") || "<div style='color:#888;font-size:12px;font-family:Georgia,serif;'>No details recorded.</div>";
 
-        document.getElementById("featurePanelFields").innerHTML = fieldsHtml || "<div style='color:#888; font-size:12px;'>No details recorded.</div>";
-
-        // Action buttons
+        const fGraphic = graphic;
         document.getElementById("featurePanelEdit").onclick = () => {
+          fGraphic.attributes = attrs;
           document.getElementById("featurePanel").style.display = "none";
-          openEditPanel(graphic, layer);
+          openEditPanel(fGraphic, layer);
         };
         document.getElementById("featurePanelMove").onclick = () => {
+          fGraphic.attributes = attrs;
           document.getElementById("featurePanel").style.display = "none";
-          startMoveMode(graphic, layer);
+          startMoveMode(fGraphic, layer);
         };
         document.getElementById("featurePanelDelete").onclick = async () => {
-          const name = attrs.person_id || "this feature";
-          if (!confirm(`Delete record for "${name}"? This cannot be undone.`)) return;
+          if (!confirm(`Delete record for "${attrs.person_id || "this feature"}"? This cannot be undone.`)) return;
           try {
-            const oid = attrs[layer.objectIdField || "OBJECTID"];
             await layer.applyEdits({ deleteFeatures: [{ objectId: oid }] });
             document.getElementById("featurePanel").style.display = "none";
           } catch (err) { alert("Delete failed."); }
         };
 
-        // Load attachments preview
-        const oid = attrs[layer.objectIdField || "OBJECTID"];
-        const layerRestUrl = getLayerRestUrl(layer);
+        // Load attachment images
         const attDiv = document.getElementById("featurePanelAttachments");
         attDiv.innerHTML = "";
         try {
-          const resp = await fetch(`${layerRestUrl}/${oid}/attachments?f=json`);
+          const resp = await fetch(`${getLayerRestUrl(layer)}/${oid}/attachments?f=json`);
           const data = await resp.json();
-          const atts = data.attachmentInfos || [];
-          if (atts.length > 0) {
-            atts.forEach(att => {
-              if (att.contentType && att.contentType.startsWith("image/")) {
-                const img = document.createElement("img");
-                img.src = `${layerRestUrl}/${oid}/attachments/${att.id}`;
-                img.style.cssText = "width:100%; border-radius:3px; margin-bottom:8px; border:1px solid #c8b89a;";
-                attDiv.appendChild(img);
-              }
-            });
-          }
+          (data.attachmentInfos || []).forEach(att => {
+            if (att.contentType?.startsWith("image/")) {
+              const img = document.createElement("img");
+              img.src = `${getLayerRestUrl(layer)}/${oid}/attachments/${att.id}`;
+              img.style.cssText = "width:100%;border-radius:3px;margin-bottom:8px;border:1px solid #c8b89a;";
+              attDiv.appendChild(img);
+            }
+          });
         } catch (e) { /* no attachments */ }
 
         document.getElementById("featurePanel").style.display = "block";
+        console.log("Feature panel opened for:", attrs.person_id);
       });
 
       // Error logging
