@@ -391,6 +391,17 @@
             <input type="text" class="rr-input" id="pDOD" placeholder="Date of Death (e.g. 1910-11-02)" />
             <input type="text" class="rr-input" id="pFather" placeholder="Father's name" />
             <input type="text" class="rr-input" id="pMother" placeholder="Mother's name" />
+            <div class="section-label" style="margin-top:10px;">Attachment</div>
+            <label style="
+              display:block; padding:7px 10px; background:#f5f5f5;
+              border:1px dashed #ccc; border-radius:3px; cursor:pointer;
+              font-size:12px; color:#666; text-align:center;
+              font-family:'Georgia',serif;
+            ">
+              📎 Add Photo or Document
+              <input type="file" id="addSiteAttachment" style="display:none;" accept="image/*,.pdf,.doc,.docx" />
+            </label>
+            <div id="addSiteAttachmentName" style="font-size:11px; color:#888; margin-top:4px;"></div>
           </div>
 
           <!-- Existing person search -->
@@ -532,59 +543,7 @@
       const SERVICE_URL = "https://services.arcgis.com/HRPe58bUyBqyyiCt/arcgis/rest/services/RootRecords/FeatureServer";
       const PERSONS_URL = `${SERVICE_URL}/3`;
 
-      // Popup delete action — edit removed since Editor widget was removed.
-      const popupActions = [
-        { title: "Edit record", id: "edit-record", className: "esri-icon-edit" },
-        { title: "Move location", id: "move-record", className: "esri-icon-map-pin" },
-        { title: "Delete record", id: "delete-record", className: "esri-icon-trash" }
-      ];
-
-      // Popup templates — one per site type, showing only relevant fields.
-      const gravePopup = {
-        title: "⚰ {person_id}", actions: popupActions,
-        content: [
-          {
-            type: "attachments",
-            displayType: "preview"
-          },
-          {
-            type: "fields", fieldInfos: [
-              { fieldName: "DOB", label: "Date of Birth" },
-              { fieldName: "DOD", label: "Date of Death" },
-              { fieldName: "Father", label: "Father" },
-              { fieldName: "Mother", label: "Mother" },
-              { fieldName: "CemeteryName", label: "Cemetery" },
-              { fieldName: "County", label: "County" },
-              { fieldName: "State", label: "State" },
-              { fieldName: "Description", label: "Notes" }
-            ]
-          }
-        ]
-      };
-      const birthplacePopup = {
-        title: "🏠 {person_id}", actions: popupActions,
-        content: [{ type: "fields", fieldInfos: [
-          { fieldName: "DOB", label: "Date of Birth" },
-          { fieldName: "Father", label: "Father" },
-          { fieldName: "Mother", label: "Mother" },
-          { fieldName: "City", label: "City" },
-          { fieldName: "County", label: "County" },
-          { fieldName: "State", label: "State" },
-          { fieldName: "Description", label: "Notes" }
-        ]}]
-      };
-      const housePopup = {
-        title: "🏡 {person_id}", actions: popupActions,
-        content: [{ type: "fields", fieldInfos: [
-          { fieldName: "Father", label: "Father" },
-          { fieldName: "Mother", label: "Mother" },
-          { fieldName: "City", label: "City" },
-          { fieldName: "County", label: "County" },
-          { fieldName: "State", label: "State" },
-          { fieldName: "Address", label: "Address" },
-          { fieldName: "Description", label: "Notes" }
-        ]}]
-      };
+      // Popup templates removed — using custom sepia feature panel instead.
 
       // Distinct symbols per site type — squares for graves, circles for
       // birthplaces, diamonds for houses. Muted palette suits a genealogy theme.
@@ -622,7 +581,7 @@
       // appear when editing, hiding system fields from the user.
       const gravesLayer = new FeatureLayer({
         url: `${SERVICE_URL}/2`, title: "Graves", outFields: ["*"],
-        popupTemplate: gravePopup, renderer: graveRenderer, editingEnabled: true,
+        renderer: graveRenderer, editingEnabled: true,
         featureReduction: clusterConfig,
         formTemplate: { elements: [
           { type: "field", fieldName: "person_id", label: "Person Name *" },
@@ -640,7 +599,7 @@
       });
       const birthplaceLayer = new FeatureLayer({
         url: `${SERVICE_URL}/0`, title: "Birthplaces", outFields: ["*"],
-        popupTemplate: birthplacePopup, renderer: birthplaceRenderer, editingEnabled: true,
+        renderer: birthplaceRenderer, editingEnabled: true,
         featureReduction: clusterConfig,
         formTemplate: { elements: [
           { type: "field", fieldName: "person_id", label: "Person Name *" },
@@ -655,7 +614,7 @@
       });
       const houseLayer = new FeatureLayer({
         url: `${SERVICE_URL}/1`, title: "Houses & Sites", outFields: ["*"],
-        popupTemplate: housePopup, renderer: houseRenderer, editingEnabled: true,
+        renderer: houseRenderer, editingEnabled: true,
         featureReduction: clusterConfig,
         formTemplate: { elements: [
           { type: "field", fieldName: "person_id", label: "Person Name *" },
@@ -751,6 +710,12 @@
       document.getElementById("toggleBirthplaces").checked = false;
       document.getElementById("toggleHouses").checked = false;
 
+      // Show selected filename in Add Site attachment picker
+      document.getElementById("addSiteAttachment").addEventListener("change", e => {
+        const file = e.target.files[0];
+        document.getElementById("addSiteAttachmentName").textContent = file ? `📄 ${file.name}` : "";
+      });
+
       // Layer visibility toggles.
       document.getElementById("toggleGraves").addEventListener("change", e => gravesLayer.visible = e.target.checked);
       document.getElementById("toggleBirthplaces").addEventListener("change", e => birthplaceLayer.visible = e.target.checked);
@@ -806,7 +771,7 @@
               symbol: {
                 type: "text",
                 color: [26, 26, 46, 255],
-                haloColor: [255, 220, 0, 255],
+                haloColor: [232, 213, 176, 255],
                 haloSize: "4px",
                 text: name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
                 font: { size: 11, family: "Georgia", weight: "bold" },
@@ -896,7 +861,7 @@
                 symbol: {
                   type: "text",
                   color: [26, 26, 46, 255],
-                  haloColor: [255, 220, 0, 255],
+                  haloColor: [232, 213, 176, 255],
                   haloSize: "4px",
                   text: name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
                   font: { size: 11, family: "Georgia", weight: "bold" },
@@ -1379,6 +1344,8 @@
         document.getElementById("cemeteryDropdownWrap").style.display = "none";
         document.getElementById("submitRecord").textContent = "Save Record";
         document.getElementById("submitRecord").disabled = false;
+        document.getElementById("addSiteAttachment").value = "";
+        document.getElementById("addSiteAttachmentName").textContent = "";
         showStep(1);
       }
 
@@ -1663,6 +1630,22 @@
           });
           if (siteResult.addFeatureResults[0].error) throw siteResult.addFeatureResults[0].error;
 
+          // Upload attachment if one was selected
+          const attachFile = document.getElementById("addSiteAttachment").files[0];
+          if (attachFile && siteResult.addFeatureResults[0].objectId) {
+            try {
+              const newOid = siteResult.addFeatureResults[0].objectId;
+              const layerRestUrl = getLayerRestUrl(layerMap[currentSiteType]);
+              const formData = new FormData();
+              formData.append("attachment", attachFile, attachFile.name);
+              formData.append("f", "json");
+              await fetch(`${layerRestUrl}/${newOid}/addAttachment`, { method: "POST", body: formData });
+              console.log("Attachment uploaded:", attachFile.name);
+            } catch (attErr) {
+              console.warn("Attachment upload failed:", attErr.message);
+            }
+          }
+
           setStatus(`✓ Record saved for ${personName}`, "success");
           submitBtn.textContent = "Saved!";
           setTimeout(() => { panel.classList.remove("visible"); resetPanel(); }, 1800);
@@ -1872,7 +1855,7 @@
             symbol: {
               type: "text",
               color: [26, 26, 46, 255],
-              haloColor: [255, 220, 0, 255],
+              haloColor: [232, 213, 176, 255],
               haloSize: "4px",
               text: startName.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
               font: { size: 11, family: "Georgia", weight: "bold" },
@@ -2220,25 +2203,3 @@
     </script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
