@@ -1683,14 +1683,6 @@
       map.add(labelsLayer);
       let lineageVisible = false;
 
-      // Generation colors — red tones for ancestors, blue for descendants.
-      const ancestorColors = [
-        [100, 0, 0, 230], [160, 40, 40, 200], [200, 100, 100, 170], [230, 170, 170, 140]
-      ];
-      const descendantColors = [
-        [0, 0, 120, 230], [40, 40, 180, 200], [100, 100, 210, 170], [170, 170, 230, 140]
-      ];
-
       // Labels are colored to match their generation line and stacked vertically
       // when multiple people share the same grave location.
       function addLabel(name, point, labeledNames, color) {
