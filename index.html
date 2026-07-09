@@ -1953,7 +1953,7 @@
           });
           extent = { type: "extent", xmin, ymin, xmax, ymax, spatialReference: { wkid: 4326 } };
         }
-        return { count: lineCount, extent, startPoint, involvedNames: [...visitedAncestors, ...visitedDescendants, startKey] };
+        return { count: lineCount, extent, startPoint, involvedNames: [...visitedAncestors, ...visitedDescendants, startKey], gravesFeatures: gravesResult.features };
       }
 
       // Trace button — passes both name and GlobalID_2 to traceFromPerson.
@@ -1963,18 +1963,34 @@
         btn.disabled = true;
         btn.textContent = "⬡ Tracing...";
         try {
-          const { count, extent, startPoint, involvedNames } = await traceFromPerson(currentFilterName, currentFilterGlobalId);
+          const { count, extent, startPoint, involvedNames, gravesFeatures } = await traceFromPerson(currentFilterName, currentFilterGlobalId);
           lineageLayer.visible = true;
           lineageVisible = true;
           btn.textContent = count > 0 ? `⬡ ${count} links traced` : "⬡ No links found";
           if (count > 0) {
             buildLegend(ancestorGens, descendantGens);
             document.getElementById("webLegend").style.display = "block";
-            // Clear definition expression so all graves are visible
-            // giving the lineage lines natural termination points
-            gravesLayer.definitionExpression = "";
-            birthplaceLayer.definitionExpression = "";
-            houseLayer.definitionExpression = "";
+            // Build filter showing only graves involved in the trace.
+            // We query the actual person_id values from the graves we already
+            // fetched during the trace to get properly cased names for the IN clause.
+            const caseMap = {};
+            gravesFeatures.forEach(f => {
+              const lower = (f.attributes.person_id || "").trim().toLowerCase();
+              if (lower) caseMap[lower] = f.attributes.person_id;
+            });
+            const matchedNames = involvedNames
+              .filter(n => caseMap[n])
+              .map(n => `'${caseMap[n].replace(/'/g, "''")}'`);
+            if (matchedNames.length > 0) {
+              const traceFilter = `person_id IN (${matchedNames.join(",")})`;
+              gravesLayer.definitionExpression = traceFilter;
+              birthplaceLayer.definitionExpression = traceFilter;
+              houseLayer.definitionExpression = traceFilter;
+            } else {
+              gravesLayer.definitionExpression = "";
+              birthplaceLayer.definitionExpression = "";
+              houseLayer.definitionExpression = "";
+            }
           } else {
             document.getElementById("webLegend").style.display = "none";
           }
@@ -2208,4 +2224,5 @@
     </script>
   </body>
 </html>
+
 
